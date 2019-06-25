@@ -127,7 +127,7 @@ public class ExpressionElement implements PatternElement {
                             int i = StringUtils.indexOfIgnoreCase(s, split, index);
                             if (i != -1) {
                                 String toParse = s.substring(index, i);
-                                Expression<?> expression = parse(toParse, typeArray, logger);
+                                Expression<?> expression = parse(toParse, typeArray);
                                 if (expression != null) {
                                     parser.addExpression(expression);
                                     return index + toParse.length();

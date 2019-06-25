@@ -32,7 +32,7 @@ public class PatternParser {
      * @return the parsed PatternElement, or {@literal null} if something went wrong.
      */
     @Nullable
-    public PatternElement parsePattern(String pattern) {
+    public static PatternElement parsePattern(String pattern) {
         List<PatternElement> elements = new ArrayList<>();
         StringBuilder textBuilder = new StringBuilder();
         char[] chars = pattern.toCharArray();

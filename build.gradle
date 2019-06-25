@@ -122,6 +122,8 @@ license {
 	header file('licenseheader.txt')
 	exclude('**/Metrics.java') // Not under GPLv3
 	exclude('**/BurgerHelper.java') // Not exclusively GPLv3
+	// Originally provided by skript-parser; licensed under MIT
+	exclude('io/github/syst3ms/skriptparser/**')
 	exclude('**/*.sk') // Sample scripts and maybe aliases
 	exclude('**/*.lang') // Language files do not have headers (still under GPLv3)
 	exclude('**/*.json') // JSON files do not have headers
