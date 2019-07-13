@@ -3,6 +3,7 @@ package io.github.syst3ms.skriptparser.types;
 import org.eclipse.jdt.annotation.Nullable;
 
 import ch.njol.skript.classes.ClassInfo;
+import ch.njol.skript.localization.Noun;
 
 /**
  * A type used in a pattern.
@@ -40,8 +41,7 @@ public class PatternType<T> {
 
     @Override
     public String toString() {
-    	// TODO handle Skript's plural forms
-        String[] forms = type.getPluralForms();
-        return forms[single ? 0 : 1];
+    	Noun forms = type.getName();
+    	return single ? forms.getSingular() : forms.getPlural();
     }
 }

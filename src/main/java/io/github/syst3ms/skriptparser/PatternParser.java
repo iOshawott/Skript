@@ -10,7 +10,6 @@ import io.github.syst3ms.skriptparser.pattern.PatternElement;
 import io.github.syst3ms.skriptparser.pattern.RegexGroup;
 import io.github.syst3ms.skriptparser.pattern.TextElement;
 import io.github.syst3ms.skriptparser.types.PatternType;
-import io.github.syst3ms.skriptparser.types.TypeManager;
 import io.github.syst3ms.skriptparser.util.StringUtils;
 
 import java.util.ArrayList;
@@ -23,8 +22,15 @@ import java.util.regex.PatternSyntaxException;
 import org.eclipse.jdt.annotation.Nullable;
 
 public class PatternParser {
+	
     private static final Pattern PARSE_MARK_PATTERN = Pattern.compile("(\\d+?)\\xa6.*");
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("(-)?([*~])?(=)?(?<types>[\\w/]+)?");
+    
+    private final SkriptRegistry registry;
+    
+    public PatternParser(SkriptRegistry registry) {
+    	this.registry = registry;
+    }
 
     /**
      * Parses a pattern and returns a {@link PatternElement}. This method can be called by itself, for example when parsing group constructs.
@@ -32,7 +38,7 @@ public class PatternParser {
      * @return the parsed PatternElement, or {@literal null} if something went wrong.
      */
     @Nullable
-    public static PatternElement parsePattern(String pattern) {
+    public PatternElement parsePattern(String pattern) {
         List<PatternElement> elements = new ArrayList<>();
         StringBuilder textBuilder = new StringBuilder();
         char[] chars = pattern.toCharArray();
@@ -148,7 +154,7 @@ public class PatternParser {
                     String[] types = typeString.split("/");
                     List<PatternType<?>> patternTypes = new ArrayList<>();
                     for (String type : types) {
-                        PatternType<?> t = TypeManager.getPatternType(type);
+                        PatternType<?> t = registry.getPatternType(type);
                         if (t == null) {
                             return null;
                         }

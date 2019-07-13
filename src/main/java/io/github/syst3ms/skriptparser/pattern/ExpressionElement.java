@@ -63,7 +63,7 @@ public class ExpressionElement implements PatternElement {
                     // Take rest of line and attempt to parse it
                     String toParse = s.substring(index).trim();
                     assert toParse != null;
-                    Expression<?> expression = parse(toParse, typeArray);
+                    Expression<?> expression = parse(toParse, typeArray, parser.getSyntaxParser());
                     if (expression != null) {
                         parser.addExpression(expression);
                         return index + toParse.length();
@@ -81,7 +81,7 @@ public class ExpressionElement implements PatternElement {
                 while (i != -1) {
                     String toParse = s.substring(index, i).trim();
                     assert toParse != null;
-                    Expression<?> expression = parse(toParse, typeArray);
+                    Expression<?> expression = parse(toParse, typeArray, parser.getSyntaxParser());
                     if (expression != null) {
                         parser.addExpression(expression);
                         return index + toParse.length();
@@ -103,7 +103,7 @@ public class ExpressionElement implements PatternElement {
                     String toParse = s.substring(index, i);
                     if (toParse.length() == parser.getOriginalPattern().length())
                         continue;
-                    Expression<?> expression = parse(toParse, typeArray);
+                    Expression<?> expression = parse(toParse, typeArray, parser.getSyntaxParser());
                     if (expression != null) {
                         parser.addExpression(expression);
                         return index + toParse.length();
@@ -136,7 +136,7 @@ public class ExpressionElement implements PatternElement {
                             if (i != -1) {
                                 String toParse = s.substring(index, i);
                                 assert toParse != null;
-                                Expression<?> expression = parse(toParse, typeArray);
+                                Expression<?> expression = parse(toParse, typeArray, parser.getSyntaxParser());
                                 if (expression != null) {
                                     parser.addExpression(expression);
                                     return index + toParse.length();
@@ -158,7 +158,7 @@ public class ExpressionElement implements PatternElement {
                             if (i != -1) {
                                 String toParse = s.substring(index, i);
                                 assert toParse != null;
-                                Expression<?> expression = parse(toParse, typeArray);
+                                Expression<?> expression = parse(toParse, typeArray, parser.getSyntaxParser());
                                 if (expression != null) {
                                     parser.addExpression(expression);
                                     return index + toParse.length();
@@ -203,7 +203,7 @@ public class ExpressionElement implements PatternElement {
 
     @SuppressWarnings("unchecked")
     @Nullable
-    private <T> Expression<? extends T> parse(String s, PatternType<?>[] types) {
+    private <T> Expression<? extends T> parse(String s, PatternType<?>[] types, SyntaxParser parser) {
         for (PatternType<?> type : types) {
         	assert type != null;
             Expression<? extends T> expression;
@@ -215,7 +215,7 @@ public class ExpressionElement implements PatternElement {
 //                        acceptsConditional ? SyntaxParser.MAYBE_CONDITIONAL : SyntaxParser.NOT_CONDITIONAL
 //                );
 //            } else {
-                expression = SyntaxParser.parseExpression(s, (PatternType<T>) type);
+                expression = parser.parseExpression(s, (PatternType<T>) type);
 //            }
             if (expression == null)
                 continue;

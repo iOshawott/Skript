@@ -1,9 +1,9 @@
 package io.github.syst3ms.skriptparser.parsing;
 
+import io.github.syst3ms.skriptparser.SkriptRegistry;
 import io.github.syst3ms.skriptparser.event.TriggerContext;
 import io.github.syst3ms.skriptparser.pattern.PatternElement;
 import io.github.syst3ms.skriptparser.types.PatternType;
-import io.github.syst3ms.skriptparser.types.TypeManager;
 import io.github.syst3ms.skriptparser.util.ClassUtils;
 import io.github.syst3ms.skriptparser.util.StringUtils;
 
@@ -42,7 +42,7 @@ import ch.njol.skript.registrations.Converters;
 import ch.njol.util.Kleenean;
 
 /**
- * Parses all syntax elements known by Skript.
+ * Parses syntax elements from registry that it was created with.
  */
 public class SyntaxParser {
 	/**
@@ -64,20 +64,29 @@ public class SyntaxParser {
 	@SuppressWarnings("null")
 	public static final Pattern LIST_SPLIT_PATTERN = Pattern.compile("\\s*(,)\\s*|\\s+(and|or)\\s+", Pattern.CASE_INSENSITIVE);
 	
+	private final SkriptRegistry registry;
+	
 	/**
 	 * The pattern type representing {@link Boolean}
 	 */
 	@SuppressWarnings("null")
-	public static final PatternType<Boolean> BOOLEAN_PATTERN_TYPE = new PatternType<>(TypeManager.getByClass(Boolean.class), true);
+	public final PatternType<Boolean> booleanPatternType;
 	
 	/**
 	 * The pattern type representing {@link Object}
 	 */
 	@SuppressWarnings("null")
-	public static final PatternType<Object> OBJECT_PATTERN_TYPE = new PatternType<>(TypeManager.getByClass(Object.class), true);
+	public final PatternType<Object> objectPatternType;
 	
 	@SuppressWarnings("unchecked")
-	private static Class<? extends TriggerContext>[] currentContexts = new Class[]{};
+	private Class<? extends TriggerContext>[] currentContexts = new Class[]{};
+	
+	@SuppressWarnings("unchecked")
+	public SyntaxParser(SkriptRegistry registry) {
+		this.registry = registry;
+		this.booleanPatternType = new PatternType<>((ClassInfo<Boolean>) registry.getTypes().get(Boolean.class), true);
+		this.objectPatternType = new PatternType<>((ClassInfo<Object>) registry.getTypes().get(Object.class), true);
+	}
 	
 	/**
 	 * Parses an {@link Expression} from the given {@linkplain String} and {@link PatternType expected return type}
@@ -89,7 +98,7 @@ public class SyntaxParser {
 	 * or for another reason detailed in an error message.
 	 */
 	@Nullable
-	public static <T> Expression<? extends T> parseExpression(String s, PatternType<T> expectedType) {
+	public <T> Expression<? extends T> parseExpression(String s, PatternType<T> expectedType) {
 		if (s.isEmpty())
 			return null;
 		
@@ -124,7 +133,7 @@ public class SyntaxParser {
 		
 		
 		// Test all expressions that might return this type
-		Iterator<ExpressionInfo<?, ?>> it = Skript.getExpressions(expectedType.getType().getC());
+		Iterator<ExpressionInfo<?, ?>> it = registry.getExpressions(expectedType.getType().getC());
 		while (it.hasNext()) {
 			ExpressionInfo<?, ?> info = it.next();
 			assert info != null;
@@ -145,11 +154,11 @@ public class SyntaxParser {
 	 * or for another reason detailed in an error message
 	 */
 	@Nullable
-	public static Condition parseCondition(String s) {
+	public Condition parseCondition(String s) {
 		if (s.isEmpty())
 			return null;
 		
-		for (SyntaxElementInfo<?> info : Skript.getConditions()) {
+		for (SyntaxElementInfo<?> info : registry.getConditions()) {
 			assert info != null;
 			Condition cond = (Condition) matchStatementInfo(s, info);
 			if (cond != null) {
@@ -160,7 +169,7 @@ public class SyntaxParser {
 	}
 	
 	@Nullable
-	private static <T> Expression<? extends T> matchExpressionInfo(String s, ExpressionInfo<?, ?> info, PatternType<T> expectedType, Class<? extends TriggerContext>[] currentContextss) {
+	private <T> Expression<? extends T> matchExpressionInfo(String s, ExpressionInfo<?, ?> info, PatternType<T> expectedType, Class<? extends TriggerContext>[] currentContextss) {
 		PatternElement[] patterns = info.getCompiledPatterns();
 		Class<?> infoTypeClass = info.returnType;
 		Class<T> expectedTypeClass = expectedType.getType().getC();
@@ -168,7 +177,7 @@ public class SyntaxParser {
 			return null; // Would need to convert, but we definitely can't do that
 		for (int i = 0; i < patterns.length; i++) {
 			PatternElement element = patterns[i];
-			MatchContext parser = new MatchContext(element, currentContextss);
+			MatchContext parser = new MatchContext(this, element, currentContextss);
 			if (element.match(s, 0, parser) != -1) {
 				try {
 					Expression<? extends T> expression = (Expression<? extends T>) info.c.newInstance();
@@ -184,7 +193,7 @@ public class SyntaxParser {
 						if (converted != null) { // It worked, we got converted type
 							return (Expression<? extends T>) converted;
 						} else {
-							ClassInfo<?> type = TypeManager.getByClass(expressionReturnType);
+							ClassInfo<?> type = registry.getTypes().get(expressionReturnType);
 							assert type != null;
 							Skript.error(StringUtils.withIndefiniteArticle(expectedType.toString(), false) +
 									" was expected, but " +
@@ -217,7 +226,7 @@ public class SyntaxParser {
 	 * or for another reason detailed in an error message.
 	 */
 	@Nullable
-	public static <T> Expression<? extends T> parseListLiteral(String s, PatternType<T> expectedType) {
+	public <T> Expression<? extends T> parseListLiteral(String s, PatternType<T> expectedType) {
 		assert !expectedType.isSingle();
 		if (!s.contains(",") && !s.contains("and") && !s.contains("nor") && !s.contains("or"))
 			return null;
@@ -304,12 +313,13 @@ public class SyntaxParser {
 	 * or for another reason detailed in an error message.
 	 */
 	@Nullable
-	public static <T> Expression<? extends T> parseLiteral(String s, PatternType<T> expectedType) {
-		Map<Class<?>, ClassInfo<?>> classToTypeMap = TypeManager.getClassToTypeMap();
-		for (Class<?> c : classToTypeMap.keySet()) {
+	public <T> Expression<? extends T> parseLiteral(String s, PatternType<T> expectedType) {
+		for (ClassInfo<?> info : registry.getTypes()) {
+			Class<?> c = info.getC();
+			
 			Class<? extends T> expectedClass = expectedType.getType().getC();
 			if (expectedClass.isAssignableFrom(c) || Converters.converterExists(c, expectedClass)) {
-				Parser<?> literalParser = classToTypeMap.get(c).getParser();
+				Parser<?> literalParser = info.getParser();
 				if (literalParser != null) {
 					// TODO is this correct parse mode?
 					T literal = (T) literalParser.parse(s, ch.njol.skript.lang.ParseContext.DEFAULT);
@@ -337,12 +347,12 @@ public class SyntaxParser {
 	 * or for another reason detailed in an error message
 	 */
 	@Nullable
-	public static Effect parseEffect(String s) {
+	public Effect parseEffect(String s) {
 		if (s.isEmpty())
 			return null;
 
 		// Go through all effects (they have no return types, obviously)
-		for (SyntaxElementInfo<?> effect : Skript.getEffects()) {
+		for (SyntaxElementInfo<?> effect : registry.getEffects()) {
 			assert effect != null;
 			Effect eff = (Effect) matchStatementInfo(s, effect);
 			if (eff != null) {
@@ -361,7 +371,7 @@ public class SyntaxParser {
 	 * or for another reason detailed in an error message
 	 */
 	@Nullable
-	public static Statement parseStatement(String s) {
+	public Statement parseStatement(String s) {
 		if (s.isEmpty())
 			return null;
 		Effect eff = parseEffect(s);
@@ -379,12 +389,12 @@ public class SyntaxParser {
 	 * detailed in an error message
 	 */
 	@Nullable
-	public static SkriptEvent parseEvent(String s) {
+	public SkriptEvent parseEvent(String s) {
 		if (s.isEmpty())
 			return null;
 		
 		// Test against all events
-		for (SkriptEventInfo<?> info : Skript.getEvents()) {
+		for (SkriptEventInfo<?> info : registry.getEvents()) {
 			assert info != null;
 			SkriptEvent event = (SkriptEvent) matchStatementInfo(s, info);
 			if (event != null) {
@@ -396,11 +406,11 @@ public class SyntaxParser {
 	}
 	
 	@Nullable
-	private static SyntaxElement matchStatementInfo(String s, SyntaxElementInfo<?> info) {
+	private SyntaxElement matchStatementInfo(String s, SyntaxElementInfo<?> info) {
 		PatternElement[] patterns = info.getCompiledPatterns();
 		for (int i = 0; i < patterns.length; i++) {
 			PatternElement element = patterns[i];
-			MatchContext parser = new MatchContext(element, currentContexts);
+			MatchContext parser = new MatchContext(this, element, currentContexts);
 			if (element.match(s, 0, parser) != -1) {
 				try {
 					SyntaxElement syntax = info.c.newInstance();
@@ -415,9 +425,5 @@ public class SyntaxParser {
 			}
 		}
 		return null;
-	}
-	
-	static void setCurrentContexts(Class<? extends TriggerContext>[] currentContexts) {
-		SyntaxParser.currentContexts = currentContexts;
 	}
 }

@@ -15,6 +15,7 @@ import ch.njol.skript.lang.SyntaxElementInfo;
 import ch.njol.skript.registrations.Converters;
 import ch.njol.util.NullableChecker;
 import ch.njol.util.coll.iterator.CheckedIterator;
+import io.github.syst3ms.skriptparser.types.PatternType;
 
 /**
  * Contains registered types, conditions, expressions, effects and events.
@@ -44,10 +45,6 @@ public class SkriptRegistry {
 			this.classToEntry = new HashMap<>();
 		}
 		
-		public List<T> getEntries() {
-			return entries;
-		}
-		
 		public T get(String name) {
 			T entry = nameToEntry.get(name);
 			if (entry == null) {
@@ -56,7 +53,7 @@ public class SkriptRegistry {
 			return entry;
 		}
 		
-		public T get(Class<T> type) {
+		public T get(Class<?> type) {
 			T entry = classToEntry.get(type);
 			if (entry == null) {
 				throw new EntryNotFoundException(type);
@@ -87,6 +84,26 @@ public class SkriptRegistry {
 	public Bundle<ClassInfo<?>> getTypes() {
 		return types;
 	}
+	
+    /**
+     * Gets a {@link PatternType} from a name. This determines the number
+     * (single/plural) from the input. If the input happens to be the base
+     * name of a type, then a single PatternType (as in "not plural") of
+     * the corresponding type is returned.
+     * @param name Input name.
+     * @return The corresponding PatternType, or {@literal null} if nothing matched.
+     */
+    @Nullable
+    public PatternType<?> getPatternType(String name) {
+        for (ClassInfo<?> t : getTypes()) {
+            if (name.equalsIgnoreCase(t.getName().getSingular())) {
+                return new PatternType<>(t, true);
+            } else if (name.equalsIgnoreCase(t.getName().getPlural())) {
+                return new PatternType<>(t, false);
+            }
+        }
+        return null;
+    }
 	
 	public Bundle<ExpressionInfo<?, ?>> getExpressions() {
 		return expressions;

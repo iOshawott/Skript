@@ -13,7 +13,17 @@ import ch.njol.skript.lang.Expression;
  * A parser instance used for matching a pattern to a syntax
  */
 public class MatchContext {
+
+	/**
+	 * Syntax parser that is currently in use.
+	 */
+	private SyntaxParser parser;
+	
+	/**
+	 * Original pattern found in script.
+	 */
     private String originalPattern;
+    
     public PatternElement originalElement;
     // Provided to the syntax's class
     private final Class<? extends TriggerContext>[] currentContext;
@@ -22,10 +32,15 @@ public class MatchContext {
     private int patternIndex = 0;
     private int parseMark = 0;
 
-    public MatchContext(PatternElement e, Class<? extends TriggerContext>[] currentContext) {
+    public MatchContext(SyntaxParser parser, PatternElement e, Class<? extends TriggerContext>[] currentContext) {
+    	this.parser = parser;
         this.originalPattern = e.toString();
         this.originalElement = e;
         this.currentContext = currentContext;
+    }
+    
+    public SyntaxParser getSyntaxParser() {
+    	return parser;
     }
 
     public PatternElement getOriginalElement() {
@@ -43,6 +58,7 @@ public class MatchContext {
     public void advanceInPattern() {
         patternIndex++;
     }
+    
     public List<Expression<?>> getParsedExpressions() {
         return parsedExpressions;
     }
