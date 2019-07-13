@@ -21,6 +21,11 @@ public interface PatternElement {
      */
     int match(String s, int index, MatchContext parser);
 
+    /**
+     * Gets pattern elements the given element consists of.
+     * @param element Pattern element to flatten.
+     * @return The elements that form given element.
+     */
     static List<PatternElement> flatten(PatternElement element) {
         if (element instanceof CompoundElement) {
             return ((CompoundElement) element).getElements();
@@ -35,27 +40,35 @@ public interface PatternElement {
             if (element instanceof TextElement || element instanceof RegexGroup) {
                 if (element instanceof TextElement) {
                     String text = ((TextElement) element).getText();
+                    
+                    // If empty or blank text element is only element, everything matches
                     if (text.isEmpty() || text.matches("\\s*") && elements.size() == 1) {
                         return possibilities;
                     } else if (text.matches("\\s*")) {
-                        continue;
+                        continue; // Ignore
                     }
                 }
+                
+                // One regex or text input is possible here
                 possibilities.add(element);
                 return possibilities;
             } else if (element instanceof ChoiceGroup) {
+            	// Record all possible inputs of all choices
                 for (ChoiceElement choice : ((ChoiceGroup) element).getChoices()) {
                     List<PatternElement> possibleInputs = getPossibleInputs(flatten(choice.getElement()));
                     possibilities.addAll(possibleInputs);
                 }
                 return possibilities;
             } else if (element instanceof ExpressionElement) {
-                possibilities.add(element);
+                possibilities.add(element); // Input is an expression
                 return possibilities;
             } else if (element instanceof OptionalGroup) {
+            	// Everything that is in optional group is POSSIBLE input
                 possibilities.addAll(getPossibleInputs(flatten(((OptionalGroup) element).getElement())));
             }
         }
+        
+        // Reached end-of-line, signal that with NULL text element
         possibilities.add(new TextElement("\0"));
         return possibilities;
     }

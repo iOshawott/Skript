@@ -147,6 +147,7 @@ public class SyntaxParser {
 			return null;
 		
 		for (SyntaxElementInfo<?> info : Skript.getConditions()) {
+			assert info != null;
 			Condition cond = (Condition) matchStatementInfo(s, info);
 			if (cond != null) {
 				return cond;

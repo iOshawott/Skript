@@ -43,6 +43,7 @@ public class ExpressionElement implements PatternElement {
         if (parser.getOriginalElement().equals(this))
             parser.advanceInPattern();
         PatternType<?>[] typeArray = types.toArray(new PatternType<?>[0]);
+        assert typeArray != null;
         if (index >= s.length()) {
             return -1;
         }
@@ -55,21 +56,31 @@ public class ExpressionElement implements PatternElement {
                 String text = ((TextElement) possibleInput).getText();
                 if (text.isEmpty())
                     continue;
-                if (text.equals("\0")) { // End of line
-                	// TODO wait, NUL-terminated lines?
+                if (text.equals("\0")) { // There is nothing after this; end of line reached
                     if (index == 0)
                         return -1;
+                    
+                    // Take rest of line and attempt to parse it
                     String toParse = s.substring(index).trim();
+                    assert toParse != null;
                     Expression<?> expression = parse(toParse, typeArray);
                     if (expression != null) {
                         parser.addExpression(expression);
                         return index + toParse.length();
                     }
-                    return -1;
+                    
+                    return -1; // Parsing failed, and we have nothing more to parse
                 }
+                
+                /*
+                 * 1. Find next occurrence of text element.
+                 * 2. Try to parse between current index and start of it.
+                 * 3. If it failed, repeat.
+                 */
                 int i = StringUtils.indexOfIgnoreCase(s, text, index);
                 while (i != -1) {
                     String toParse = s.substring(index, i).trim();
+                    assert toParse != null;
                     Expression<?> expression = parse(toParse, typeArray);
                     if (expression != null) {
                         parser.addExpression(expression);
@@ -77,13 +88,18 @@ public class ExpressionElement implements PatternElement {
                     }
                     i = StringUtils.indexOfIgnoreCase(s, text, i + 1);
                 }
+                // All occurrences checked, parsing failed; try next possible input
             } else if (possibleInput instanceof RegexGroup) {
+            	// Create matcher against rest of input string
+            	// TODO check possible index out of bounds here
                 Matcher m = ((RegexGroup) possibleInput).getPattern().matcher(s).region(index, s.length());
-                while (m.lookingAt()) {
+                while (m.lookingAt()) { // Go through all matches
                     int i = m.start();
                     if (i == -1) {
                         continue;
                     }
+                    
+                    // Parse between current index and start of match
                     String toParse = s.substring(index, i);
                     if (toParse.length() == parser.getOriginalPattern().length())
                         continue;
@@ -93,21 +109,33 @@ public class ExpressionElement implements PatternElement {
                         return index + toParse.length();
                     }
                 }
+                // No more matches, parsing failed; try next possible input
             } else {
                 assert possibleInput instanceof ExpressionElement;
+                // Next element is expression, like this one it has many possible inputs
                 List<PatternElement> nextPossibleInputs = PatternElement.getPossibleInputs(flattened.subList(parser.getPatternIndex() + 1, flattened.size()));
                 if (nextPossibleInputs.stream().anyMatch(pe -> !(pe instanceof TextElement))) {
-                    continue;
+                	// Expression element after this has non-text inputs
+                	// This means we can't determine end of this expression efficiently
+                	// TODO but inefficient parsing COULD be implemented
+                    continue; // Ambiguous, don't parse
                 }
+                
+                // Go through possible text elements
                 for (PatternElement nextPossibleInput : nextPossibleInputs) {
                     String text = ((TextElement) nextPossibleInput).getText();
+                    
+                    // TODO why this parsing routine is different from normal TextElement one?
                     if (text.equals("")) {
                         String rest = s.substring(index);
+                        assert rest != null;
                         List<String> splits = splitAtSpaces(rest);
                         for (String split : splits) {
+                        	assert split != null;
                             int i = StringUtils.indexOfIgnoreCase(s, split, index);
                             if (i != -1) {
                                 String toParse = s.substring(index, i);
+                                assert toParse != null;
                                 Expression<?> expression = parse(toParse, typeArray);
                                 if (expression != null) {
                                     parser.addExpression(expression);
@@ -123,10 +151,13 @@ public class ExpressionElement implements PatternElement {
                         }
                         String rest = s.substring(index, bound);
                         List<String> splits = splitAtSpaces(rest);
+                        assert rest != null;
                         for (String split : splits) {
+                        	assert split != null;
                             int i = StringUtils.indexOfIgnoreCase(s, split, index);
                             if (i != -1) {
                                 String toParse = s.substring(index, i);
+                                assert toParse != null;
                                 Expression<?> expression = parse(toParse, typeArray);
                                 if (expression != null) {
                                     parser.addExpression(expression);
@@ -141,7 +172,7 @@ public class ExpressionElement implements PatternElement {
         return -1;
     }
 
-    private List<String> splitAtSpaces(String s) {
+    private static List<String> splitAtSpaces(String s) {
         List<String> splitted = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
         char[] charArray = s.toCharArray();
@@ -171,18 +202,21 @@ public class ExpressionElement implements PatternElement {
     }
 
     @SuppressWarnings("unchecked")
+    @Nullable
     private <T> Expression<? extends T> parse(String s, PatternType<?>[] types) {
         for (PatternType<?> type : types) {
+        	assert type != null;
             Expression<? extends T> expression;
-            if (type.equals(SyntaxParser.BOOLEAN_PATTERN_TYPE)) {
-                // NOTE : conditions call parseBooleanExpression straight away
-                expression = (Expression<? extends T>) SyntaxParser.parseBooleanExpression(
-                        s,
-                        acceptsConditional ? SyntaxParser.MAYBE_CONDITIONAL : SyntaxParser.NOT_CONDITIONAL
-                );
-            } else {
+            // TODO Skript doesn't really have boolean expressions; sort this out and enable this code
+//            if (type.equals(SyntaxParser.BOOLEAN_PATTERN_TYPE)) {
+//                // NOTE : conditions call parseBooleanExpression straight away
+//                expression = (Expression<? extends T>) SyntaxParser.parseBooleanExpression(
+//                        s,
+//                        acceptsConditional ? SyntaxParser.MAYBE_CONDITIONAL : SyntaxParser.NOT_CONDITIONAL
+//                );
+//            } else {
                 expression = SyntaxParser.parseExpression(s, (PatternType<T>) type);
-            }
+//            }
             if (expression == null)
                 continue;
             switch (acceptance) {
@@ -253,10 +287,28 @@ public class ExpressionElement implements PatternElement {
         return sb.append("%").toString();
     }
 
+    /**
+     * What kinds of inputs an expression element accepts.
+     */
     public enum Acceptance {
+    	/**
+    	 * Everything goes.
+    	 */
         ALL,
+        
+        /**
+         * Only expressions are accepted.
+         */
         EXPRESSIONS_ONLY,
+        
+        /**
+         * Only literals are accepted.
+         */
         LITERALS_ONLY,
+        
+        /**
+         * Only variables are accepted.
+         */
         VARIABLES_ONLY
     }
 }
