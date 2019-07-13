@@ -19,6 +19,8 @@
  */
 package ch.njol.skript.lang;
 
+import java.lang.reflect.InvocationTargetException;
+
 import io.github.syst3ms.skriptparser.PatternParser;
 import io.github.syst3ms.skriptparser.pattern.PatternElement;
 
@@ -63,14 +65,18 @@ public class SyntaxElementInfo<E extends SyntaxElement> {
 		}
 		
 		try {
-			if (!c.getConstructor().isAccessible()) {
-				throw new Error(c + " has a nullary constructor, but Skript can't access it");
-			}
+			c.getConstructor().newInstance();
 		} catch (NoSuchMethodException e) {
 			// throwing an Exception throws an (empty) ExceptionInInitializerError instead, thus an Error is used
 			throw new Error(c + " does not have a public nullary constructor", e);
 		} catch (SecurityException e) {
-			throw new IllegalStateException("Skript cannot run properly because a security manager is blocking it!");
+			throw new IllegalStateException("Skript cannot run properly because a security manager is blocking it!", e);
+		} catch (InstantiationException e) {
+			throw new Error(c + " has a nullary constructor, but Skript can't access it", e);
+		} catch (IllegalAccessException e) {
+			throw new Error(c + " has a nullary constructor, but Skript can't access it", e);
+		} catch (InvocationTargetException e) {
+			throw new Error(c + " has a nullary constructor, but it threw an exception", e.getCause());
 		}
 	}
 	

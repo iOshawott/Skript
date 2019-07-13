@@ -257,6 +257,8 @@ public class ExpressionElement implements PatternElement {
             return types.equals(e.types) && acceptance == e.acceptance && acceptsConditional == e.acceptsConditional;
         }
     }
+    
+    
 
     @Override
     public String toString() {

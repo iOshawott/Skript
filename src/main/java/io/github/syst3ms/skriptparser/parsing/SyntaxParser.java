@@ -61,6 +61,7 @@ public class SyntaxParser {
 	 */
 	public static final int CONDITIONAL = 2;
 	
+	@SuppressWarnings("null")
 	public static final Pattern LIST_SPLIT_PATTERN = Pattern.compile("\\s*(,)\\s*|\\s+(and|or)\\s+", Pattern.CASE_INSENSITIVE);
 	
 	/**
@@ -75,6 +76,7 @@ public class SyntaxParser {
 	@SuppressWarnings("null")
 	public static final PatternType<Object> OBJECT_PATTERN_TYPE = new PatternType<>(TypeManager.getByClass(Object.class), true);
 	
+	@SuppressWarnings("unchecked")
 	private static Class<? extends TriggerContext>[] currentContexts = new Class[]{};
 	
 	/**
@@ -112,7 +114,7 @@ public class SyntaxParser {
 			return variable;
 		}
 		
-		// A list literal is applicable here; try to parse it
+		// A list literal is could be here; try to parse it
 		if (!expectedType.isSingle()) {
 			Expression<? extends T> listLiteral = parseListLiteral(s, expectedType);
 			if (listLiteral != null) {
@@ -125,6 +127,7 @@ public class SyntaxParser {
 		Iterator<ExpressionInfo<?, ?>> it = Skript.getExpressions(expectedType.getType().getC());
 		while (it.hasNext()) {
 			ExpressionInfo<?, ?> info = it.next();
+			assert info != null;
 			Expression<? extends T> expr = matchExpressionInfo(s, info, expectedType, currentContexts);
 			if (expr != null) {
 				return expr;
@@ -159,8 +162,7 @@ public class SyntaxParser {
 	@Nullable
 	private static <T> Expression<? extends T> matchExpressionInfo(String s, ExpressionInfo<?, ?> info, PatternType<T> expectedType, Class<? extends TriggerContext>[] currentContextss) {
 		PatternElement[] patterns = info.getCompiledPatterns();
-		PatternType<?> infoType = info.getPatternType();
-		Class<?> infoTypeClass = infoType.getType().getC();
+		Class<?> infoTypeClass = info.returnType;
 		Class<T> expectedTypeClass = expectedType.getType().getC();
 		if (!expectedTypeClass.isAssignableFrom(infoTypeClass) && !Converters.converterExists(infoTypeClass, expectedTypeClass))
 			return null; // Would need to convert, but we definitely can't do that
@@ -278,12 +280,16 @@ public class SyntaxParser {
 		if (expressions.size() == 1)
 			return expressions.get(0);
 		if (isLiteralList) {
-			Literal[] literals = expressions.toArray(new Literal[0]);
-			Class<?> returnType = ClassUtils.getCommonSuperclass(Arrays.stream(literals).map(Literal::getReturnType).toArray(Class[]::new));
+			Literal<T>[] literals = expressions.toArray(new Literal[0]);
+			assert literals != null;
+			@SuppressWarnings("unchecked")
+			Class<T> returnType = (Class<T>) ClassUtils.getCommonSuperclass(Arrays.stream(literals).map(Literal::getReturnType).toArray(Class[]::new));
 			return new LiteralList<>(literals, returnType, isAndList);
 		} else {
-			Expression[] exprs = expressions.toArray(new Expression[0]);
-			Class<?> returnType = ClassUtils.getCommonSuperclass(Arrays.stream(exprs).map(Expression::getReturnType).toArray(Class[]::new));
+			Expression<T>[] exprs = expressions.toArray(new Expression[0]);
+			assert exprs != null;
+			@SuppressWarnings("unchecked")
+			Class<T> returnType = (Class<T>) ClassUtils.getCommonSuperclass(Arrays.stream(exprs).map(Expression::getReturnType).toArray(Class[]::new));
 			return new ExpressionList<>(exprs, returnType, isAndList);
 		}
 	}
