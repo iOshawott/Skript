@@ -7,53 +7,75 @@ import java.util.List;
 import java.util.regex.MatchResult;
 
 /**
- * An object that stores data about how an object was parsed.
- * By opposition to {@link MatchContext}, this object is immutable.
+ * Stores data about parsing operation of a syntax element.
+ * Unlike {@link MatchContext}, this type is immutable.
  */
 public class ParseContext {
+	
+	/**
+	 * Current trigger contexts.
+	 */
     private final Class<? extends TriggerContext>[] currentContexts;
+    
+    /**
+     * The top-level pattern element that was successfully parsed.
+     */
     private final PatternElement element;
-    private final String expressionString;
+    
+    /**
+     * Original expression string.
+     */
+    private final String unparsed;
+    
+    /**
+     * Matched regular expressions.
+     */
     private final List<MatchResult> matches;
+    
+    /**
+     * Index of pattern that was matched.
+     */
+    private final int matchedPattern;
+    
+    /**
+     * Parser mark.
+     */
     private final int parseMark;
 
-    public ParseContext(Class<? extends TriggerContext>[] currentContexts, PatternElement element, List<MatchResult> matches, int parseMark, String expressionString) {
+    public ParseContext(Class<? extends TriggerContext>[] currentContexts, PatternElement element,
+    		List<MatchResult> matches, int matchedPattern, int parseMark, String unparsed) {
         this.currentContexts = currentContexts;
         this.element = element;
-        this.expressionString = expressionString;
+        this.unparsed = unparsed;
         this.matches = matches;
+        this.matchedPattern = matchedPattern;
         this.parseMark = parseMark;
     }
 
-    /**
-     * @return all the regex that were matched
-     */
-    public List<MatchResult> getMatches() {
-        return matches;
-    }
+	
+	public Class<? extends TriggerContext>[] getCurrentContexts() {
+		return currentContexts;
+	}
+	
+	public PatternElement getElement() {
+		return element;
+	}
 
-    /**
-     * @return the {@link PatternElement} that was successfully matched
-     */
-    public PatternElement getElement() {
-        return element;
-    }
-
-    /**
-     * @return the parse mark
-     */
-    public int getParseMark() {
-        return parseMark;
-    }
-
-    /**
-     * @return {@linkplain #getElement() the pattern element} in string form
-     */
-    public String getExpressionString() {
-        return expressionString;
-    }
-
-    public Class<? extends TriggerContext>[] getCurrentContexts() {
-        return currentContexts;
-    }
+	
+	public String getUnparsed() {
+		return unparsed;
+	}
+	
+	public List<MatchResult> getMatches() {
+		return matches;
+	}
+	
+	public int getMatchedPattern() {
+		return matchedPattern;
+	}
+	
+	public int getParseMark() {
+		return parseMark;
+	}
+    
 }

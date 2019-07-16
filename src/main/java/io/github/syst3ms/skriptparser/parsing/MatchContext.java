@@ -17,26 +17,36 @@ public class MatchContext {
 	/**
 	 * Syntax parser that is currently in use.
 	 */
-	private SyntaxParser parser;
+	private final SyntaxParser parser;
 	
 	/**
 	 * Original pattern found in script.
 	 */
-    private String originalPattern;
+    private final String originalPattern;
     
-    public PatternElement originalElement;
+    public final PatternElement originalElement;
+    
+    private final int matchedPattern;
+    
     // Provided to the syntax's class
     private final Class<? extends TriggerContext>[] currentContext;
-    private List<Expression<?>> parsedExpressions = new ArrayList<>();
+    
+    /**
+     * Inputs given to expression with this match context.
+     */
+    private List<ParsedElement> inputs = new ArrayList<>();
+    
     private List<MatchResult> regexMatches = new ArrayList<>();
     private int patternIndex = 0;
     private int parseMark = 0;
 
-    public MatchContext(SyntaxParser parser, PatternElement e, Class<? extends TriggerContext>[] currentContext) {
+    public MatchContext(SyntaxParser parser, PatternElement e, Class<? extends TriggerContext>[] currentContext,
+    		int matchedPattern) {
     	this.parser = parser;
         this.originalPattern = e.toString();
         this.originalElement = e;
         this.currentContext = currentContext;
+        this.matchedPattern = matchedPattern;
     }
     
     public SyntaxParser getSyntaxParser() {
@@ -59,12 +69,12 @@ public class MatchContext {
         patternIndex++;
     }
     
-    public List<Expression<?>> getParsedExpressions() {
-        return parsedExpressions;
+    public List<ParsedElement> getInputs() {
+        return inputs;
     }
 
-    public void addExpression(Expression<?> expression) {
-        parsedExpressions.add(expression);
+    public void addInput(ParsedElement input) {
+        inputs.add(input);
     }
 
     public void addRegexMatch(MatchResult match) {
@@ -84,6 +94,6 @@ public class MatchContext {
      * @return a {@link ParseContext} based on this {@link MatchContext}
      */
     public ParseContext toParseResult() {
-        return new ParseContext(currentContext, originalElement, regexMatches, parseMark, originalPattern);
+        return new ParseContext(currentContext, originalElement, regexMatches, matchedPattern, parseMark, originalPattern);
     }
 }

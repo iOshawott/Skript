@@ -1,6 +1,7 @@
 package io.github.syst3ms.skriptparser.pattern;
 
 import io.github.syst3ms.skriptparser.parsing.MatchContext;
+import io.github.syst3ms.skriptparser.parsing.ParsedElement;
 import io.github.syst3ms.skriptparser.parsing.SyntaxParser;
 import io.github.syst3ms.skriptparser.types.PatternType;
 import io.github.syst3ms.skriptparser.util.StringUtils;
@@ -63,9 +64,9 @@ public class ExpressionElement implements PatternElement {
                     // Take rest of line and attempt to parse it
                     String toParse = s.substring(index).trim();
                     assert toParse != null;
-                    Expression<?> expression = parse(toParse, typeArray, parser.getSyntaxParser());
+                    ParsedElement expression = parse(toParse, typeArray, parser.getSyntaxParser());
                     if (expression != null) {
-                        parser.addExpression(expression);
+                        parser.addInput(expression);
                         return index + toParse.length();
                     }
                     
@@ -81,9 +82,9 @@ public class ExpressionElement implements PatternElement {
                 while (i != -1) {
                     String toParse = s.substring(index, i).trim();
                     assert toParse != null;
-                    Expression<?> expression = parse(toParse, typeArray, parser.getSyntaxParser());
+                    ParsedElement expression = parse(toParse, typeArray, parser.getSyntaxParser());
                     if (expression != null) {
-                        parser.addExpression(expression);
+                        parser.addInput(expression);
                         return index + toParse.length();
                     }
                     i = StringUtils.indexOfIgnoreCase(s, text, i + 1);
@@ -103,9 +104,9 @@ public class ExpressionElement implements PatternElement {
                     String toParse = s.substring(index, i);
                     if (toParse.length() == parser.getOriginalPattern().length())
                         continue;
-                    Expression<?> expression = parse(toParse, typeArray, parser.getSyntaxParser());
+                    ParsedElement expression = parse(toParse, typeArray, parser.getSyntaxParser());
                     if (expression != null) {
-                        parser.addExpression(expression);
+                        parser.addInput(expression);
                         return index + toParse.length();
                     }
                 }
@@ -136,9 +137,9 @@ public class ExpressionElement implements PatternElement {
                             if (i != -1) {
                                 String toParse = s.substring(index, i);
                                 assert toParse != null;
-                                Expression<?> expression = parse(toParse, typeArray, parser.getSyntaxParser());
+                                ParsedElement expression = parse(toParse, typeArray, parser.getSyntaxParser());
                                 if (expression != null) {
-                                    parser.addExpression(expression);
+                                    parser.addInput(expression);
                                     return index + toParse.length();
                                 }
                             }
@@ -158,9 +159,9 @@ public class ExpressionElement implements PatternElement {
                             if (i != -1) {
                                 String toParse = s.substring(index, i);
                                 assert toParse != null;
-                                Expression<?> expression = parse(toParse, typeArray, parser.getSyntaxParser());
+                                ParsedElement expression = parse(toParse, typeArray, parser.getSyntaxParser());
                                 if (expression != null) {
-                                    parser.addExpression(expression);
+                                    parser.addInput(expression);
                                     return index + toParse.length();
                                 }
                             }
@@ -203,10 +204,10 @@ public class ExpressionElement implements PatternElement {
 
     @SuppressWarnings("unchecked")
     @Nullable
-    private <T> Expression<? extends T> parse(String s, PatternType<?>[] types, SyntaxParser parser) {
+    private <T> ParsedElement parse(String s, PatternType<?>[] types, SyntaxParser parser) {
         for (PatternType<?> type : types) {
         	assert type != null;
-            Expression<? extends T> expression;
+            ParsedElement expression;
             // TODO Skript doesn't really have boolean expressions; sort this out and enable this code
 //            if (type.equals(SyntaxParser.BOOLEAN_PATTERN_TYPE)) {
 //                // NOTE : conditions call parseBooleanExpression straight away
@@ -223,19 +224,19 @@ public class ExpressionElement implements PatternElement {
                 case ALL:
                     break;
                 case EXPRESSIONS_ONLY:
-                    if (expression instanceof Literal ||  expression instanceof VariableString && ((VariableString) expression).isSimple()) {
+                    if (expression.isLiteral()) {
                         Skript.error("Only expressions are allowed, found literal " + s);
                         return null;
                     }
                     break;
                 case LITERALS_ONLY:
-                    if (!(expression instanceof Literal) || expression instanceof VariableString && !((VariableString) expression).isSimple()) {
+                    if (!expression.isLiteral()) {
                         Skript.error("Only literals are allowed, found expression " + s);
                         return null;
                     }
                     break;
                 case VARIABLES_ONLY:
-                    if (!(expression instanceof Variable)) {
+                    if (!expression.isVariable()) {
                         Skript.error("Only variables are allowed, found " + s);
                         return null;
                     }

@@ -98,7 +98,7 @@ public class SyntaxParser {
 	 * or for another reason detailed in an error message.
 	 */
 	@Nullable
-	public <T> Expression<? extends T> parseExpression(String s, PatternType<T> expectedType) {
+	public <T> ParsedElement parseExpression(String s, PatternType<T> expectedType) {
 		if (s.isEmpty())
 			return null;
 		
@@ -137,7 +137,7 @@ public class SyntaxParser {
 		while (it.hasNext()) {
 			ExpressionInfo<?, ?> info = it.next();
 			assert info != null;
-			Expression<? extends T> expr = matchExpressionInfo(s, info, expectedType, currentContexts);
+			ParsedElement expr = matchExpressionInfo(s, info, expectedType, currentContexts);
 			if (expr != null) {
 				return expr;
 			}
@@ -169,7 +169,7 @@ public class SyntaxParser {
 	}
 	
 	@Nullable
-	private <T> Expression<? extends T> matchExpressionInfo(String s, ExpressionInfo<?, ?> info, PatternType<T> expectedType, Class<? extends TriggerContext>[] currentContextss) {
+	private <T> ParsedElement matchExpressionInfo(String s, ExpressionInfo<?, ?> info, PatternType<T> expectedType, Class<? extends TriggerContext>[] currentContextss) {
 		PatternElement[] patterns = info.getCompiledPatterns();
 		Class<?> infoTypeClass = info.returnType;
 		Class<T> expectedTypeClass = expectedType.getType().getC();
@@ -177,7 +177,7 @@ public class SyntaxParser {
 			return null; // Would need to convert, but we definitely can't do that
 		for (int i = 0; i < patterns.length; i++) {
 			PatternElement element = patterns[i];
-			MatchContext parser = new MatchContext(this, element, currentContextss);
+			MatchContext parser = new MatchContext(this, element, currentContextss, i);
 			if (element.match(s, 0, parser) != -1) {
 				try {
 					Expression<? extends T> expression = (Expression<? extends T>) info.c.newInstance();
@@ -410,7 +410,7 @@ public class SyntaxParser {
 		PatternElement[] patterns = info.getCompiledPatterns();
 		for (int i = 0; i < patterns.length; i++) {
 			PatternElement element = patterns[i];
-			MatchContext parser = new MatchContext(this, element, currentContexts);
+			MatchContext parser = new MatchContext(this, element, currentContexts, i);
 			if (element.match(s, 0, parser) != -1) {
 				try {
 					SyntaxElement syntax = info.c.newInstance();
