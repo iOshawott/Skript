@@ -1,5 +1,6 @@
 package io.github.syst3ms.skriptparser.parsing;
 
+import io.github.syst3ms.skriptparser.ast.AstNode;
 import io.github.syst3ms.skriptparser.event.TriggerContext;
 import io.github.syst3ms.skriptparser.pattern.PatternElement;
 
@@ -34,7 +35,7 @@ public class MatchContext {
     /**
      * Inputs given to expression with this match context.
      */
-    private List<ParsedElement> inputs = new ArrayList<>();
+    private List<AstNode> inputs = new ArrayList<>();
     
     private List<MatchResult> regexMatches = new ArrayList<>();
     private int patternIndex = 0;
@@ -69,11 +70,11 @@ public class MatchContext {
         patternIndex++;
     }
     
-    public List<ParsedElement> getInputs() {
+    public List<AstNode> getInputs() {
         return inputs;
     }
 
-    public void addInput(ParsedElement input) {
+    public void addInput(AstNode input) {
         inputs.add(input);
     }
 

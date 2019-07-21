@@ -1,7 +1,8 @@
 package io.github.syst3ms.skriptparser.pattern;
 
+import io.github.syst3ms.skriptparser.ast.AstNode;
+import io.github.syst3ms.skriptparser.ast.LiteralNode;
 import io.github.syst3ms.skriptparser.parsing.MatchContext;
-import io.github.syst3ms.skriptparser.parsing.ParsedElement;
 import io.github.syst3ms.skriptparser.parsing.SyntaxParser;
 import io.github.syst3ms.skriptparser.types.PatternType;
 import io.github.syst3ms.skriptparser.util.StringUtils;
@@ -64,7 +65,7 @@ public class ExpressionElement implements PatternElement {
                     // Take rest of line and attempt to parse it
                     String toParse = s.substring(index).trim();
                     assert toParse != null;
-                    ParsedElement expression = parse(toParse, typeArray, parser.getSyntaxParser());
+                    AstNode expression = parse(toParse, typeArray, parser.getSyntaxParser());
                     if (expression != null) {
                         parser.addInput(expression);
                         return index + toParse.length();
@@ -82,7 +83,7 @@ public class ExpressionElement implements PatternElement {
                 while (i != -1) {
                     String toParse = s.substring(index, i).trim();
                     assert toParse != null;
-                    ParsedElement expression = parse(toParse, typeArray, parser.getSyntaxParser());
+                    AstNode expression = parse(toParse, typeArray, parser.getSyntaxParser());
                     if (expression != null) {
                         parser.addInput(expression);
                         return index + toParse.length();
@@ -104,7 +105,7 @@ public class ExpressionElement implements PatternElement {
                     String toParse = s.substring(index, i);
                     if (toParse.length() == parser.getOriginalPattern().length())
                         continue;
-                    ParsedElement expression = parse(toParse, typeArray, parser.getSyntaxParser());
+                    AstNode expression = parse(toParse, typeArray, parser.getSyntaxParser());
                     if (expression != null) {
                         parser.addInput(expression);
                         return index + toParse.length();
@@ -137,7 +138,7 @@ public class ExpressionElement implements PatternElement {
                             if (i != -1) {
                                 String toParse = s.substring(index, i);
                                 assert toParse != null;
-                                ParsedElement expression = parse(toParse, typeArray, parser.getSyntaxParser());
+                                AstNode expression = parse(toParse, typeArray, parser.getSyntaxParser());
                                 if (expression != null) {
                                     parser.addInput(expression);
                                     return index + toParse.length();
@@ -159,7 +160,7 @@ public class ExpressionElement implements PatternElement {
                             if (i != -1) {
                                 String toParse = s.substring(index, i);
                                 assert toParse != null;
-                                ParsedElement expression = parse(toParse, typeArray, parser.getSyntaxParser());
+                                AstNode expression = parse(toParse, typeArray, parser.getSyntaxParser());
                                 if (expression != null) {
                                     parser.addInput(expression);
                                     return index + toParse.length();
@@ -204,10 +205,10 @@ public class ExpressionElement implements PatternElement {
 
     @SuppressWarnings("unchecked")
     @Nullable
-    private <T> ParsedElement parse(String s, PatternType<?>[] types, SyntaxParser parser) {
+    private <T> AstNode parse(String s, PatternType<?>[] types, SyntaxParser parser) {
         for (PatternType<?> type : types) {
         	assert type != null;
-            ParsedElement expression;
+            AstNode expression;
             // TODO Skript doesn't really have boolean expressions; sort this out and enable this code
 //            if (type.equals(SyntaxParser.BOOLEAN_PATTERN_TYPE)) {
 //                // NOTE : conditions call parseBooleanExpression straight away
@@ -224,19 +225,19 @@ public class ExpressionElement implements PatternElement {
                 case ALL:
                     break;
                 case EXPRESSIONS_ONLY:
-                    if (expression.isLiteral()) {
+                    if (expression instanceof LiteralNode) {
                         Skript.error("Only expressions are allowed, found literal " + s);
                         return null;
                     }
                     break;
                 case LITERALS_ONLY:
-                    if (!expression.isLiteral()) {
+                    if (!(expression instanceof LiteralNode)) {
                         Skript.error("Only literals are allowed, found expression " + s);
                         return null;
                     }
                     break;
                 case VARIABLES_ONLY:
-                    if (!expression.isVariable()) {
+                    if (!expression.getType().equals(Variable.class)) {
                         Skript.error("Only variables are allowed, found " + s);
                         return null;
                     }

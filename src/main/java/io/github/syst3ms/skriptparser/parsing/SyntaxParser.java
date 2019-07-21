@@ -1,6 +1,9 @@
 package io.github.syst3ms.skriptparser.parsing;
 
 import io.github.syst3ms.skriptparser.SkriptRegistry;
+import io.github.syst3ms.skriptparser.ast.AstNode;
+import io.github.syst3ms.skriptparser.ast.ExpressionNode;
+import io.github.syst3ms.skriptparser.ast.LiteralNode;
 import io.github.syst3ms.skriptparser.event.TriggerContext;
 import io.github.syst3ms.skriptparser.pattern.PatternElement;
 import io.github.syst3ms.skriptparser.types.PatternType;
@@ -98,7 +101,7 @@ public class SyntaxParser {
 	 * or for another reason detailed in an error message.
 	 */
 	@Nullable
-	public <T> ParsedElement parseExpression(String s, PatternType<T> expectedType) {
+	public <T> AstNode parseExpression(String s, PatternType<T> expectedType) {
 		if (s.isEmpty())
 			return null;
 		
@@ -108,14 +111,17 @@ public class SyntaxParser {
 		}
 		
 		// Check if this is literal, i.e. known compile-time
-		Expression<? extends T> literal = parseLiteral(s, expectedType);
+		LiteralNode literal = parseLiteral(s, expectedType);
 		if (literal != null) {
 			return literal;
 		}
 		
 		// Might be a variable here
 		Variable<? extends T> variable = Variable.newInstance(s, new Class[] {expectedType.getType().getC()});
-		if (variable != null) {
+		if (variable != null) { // TODO check for variable syntax without making a variable
+			return new LiteralNode(Variable.class, s);
+			
+			// TODO move to loader
 			if (!variable.isSingle() && expectedType.isSingle()) {
 				Skript.error("A single value was expected, but " + s + " represents multiple values.");
 				return null;
@@ -125,7 +131,7 @@ public class SyntaxParser {
 		
 		// A list literal is could be here; try to parse it
 		if (!expectedType.isSingle()) {
-			Expression<? extends T> listLiteral = parseListLiteral(s, expectedType);
+			AstNode listLiteral = parseListLiteral(s, expectedType);
 			if (listLiteral != null) {
 				return listLiteral;
 			}
@@ -137,7 +143,7 @@ public class SyntaxParser {
 		while (it.hasNext()) {
 			ExpressionInfo<?, ?> info = it.next();
 			assert info != null;
-			ParsedElement expr = matchExpressionInfo(s, info, expectedType, currentContexts);
+			AstNode expr = matchExpressionInfo(s, info, expectedType);
 			if (expr != null) {
 				return expr;
 			}
@@ -169,7 +175,7 @@ public class SyntaxParser {
 	}
 	
 	@Nullable
-	private <T> ParsedElement matchExpressionInfo(String s, ExpressionInfo<?, ?> info, PatternType<T> expectedType, Class<? extends TriggerContext>[] currentContextss) {
+	private <T> AstNode matchExpressionInfo(String s, ExpressionInfo<?, ?> info, PatternType<T> expectedType) {
 		PatternElement[] patterns = info.getCompiledPatterns();
 		Class<?> infoTypeClass = info.returnType;
 		Class<T> expectedTypeClass = expectedType.getType().getC();
@@ -177,8 +183,12 @@ public class SyntaxParser {
 			return null; // Would need to convert, but we definitely can't do that
 		for (int i = 0; i < patterns.length; i++) {
 			PatternElement element = patterns[i];
-			MatchContext parser = new MatchContext(this, element, currentContextss, i);
+			MatchContext parser = new MatchContext(this, element, currentContexts, i);
 			if (element.match(s, 0, parser) != -1) {
+				List<AstNode> inputs = parser.getInputs();
+				return new ExpressionNode(info.c, parser.toParseResult(), inputs.toArray(new AstNode[inputs.size()]));
+				
+				// TODO move most of below to loader
 				try {
 					Expression<? extends T> expression = (Expression<? extends T>) info.c.newInstance();
 					if (!expression.init(parser.getParsedExpressions().toArray(new Expression[0]), i,
@@ -226,7 +236,7 @@ public class SyntaxParser {
 	 * or for another reason detailed in an error message.
 	 */
 	@Nullable
-	public <T> Expression<? extends T> parseListLiteral(String s, PatternType<T> expectedType) {
+	public <T> AstNode parseListLiteral(String s, PatternType<T> expectedType) {
 		assert !expectedType.isSingle();
 		if (!s.contains(",") && !s.contains("and") && !s.contains("nor") && !s.contains("or"))
 			return null;
@@ -273,12 +283,12 @@ public class SyntaxParser {
 			}
 		}
 		isAndList = isAndList == null || isAndList; // Defaults to true
-		List<Expression<? extends T>> expressions = new ArrayList<>();
+		List<AstNode> expressions = new ArrayList<>();
 		boolean isLiteralList = true;
 		for (int i = 0; i < parts.size(); i++) {
 			if ((i & 1) == 0) { // Even index == element
 				String part = parts.get(i);
-				Expression<? extends T> expression = parseExpression(part, expectedType);
+				AstNode expression = parseExpression(part, expectedType);
 				if (expression == null) {
 					return null;
 				}
@@ -288,6 +298,8 @@ public class SyntaxParser {
 		}
 		if (expressions.size() == 1)
 			return expressions.get(0);
+		
+		// TODO implement literal list AST node
 		if (isLiteralList) {
 			Literal<T>[] literals = expressions.toArray(new Literal[0]);
 			assert literals != null;
@@ -313,12 +325,15 @@ public class SyntaxParser {
 	 * or for another reason detailed in an error message.
 	 */
 	@Nullable
-	public <T> Expression<? extends T> parseLiteral(String s, PatternType<T> expectedType) {
+	public <T> LiteralNode parseLiteral(String s, PatternType<T> expectedType) {
 		for (ClassInfo<?> info : registry.getTypes()) {
 			Class<?> c = info.getC();
 			
 			Class<? extends T> expectedClass = expectedType.getType().getC();
 			if (expectedClass.isAssignableFrom(c) || Converters.converterExists(c, expectedClass)) {
+				return new LiteralNode(c, s);
+				
+				// TODO move to loader
 				Parser<?> literalParser = info.getParser();
 				if (literalParser != null) {
 					// TODO is this correct parse mode?
