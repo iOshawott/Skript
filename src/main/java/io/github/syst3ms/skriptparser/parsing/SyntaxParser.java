@@ -160,13 +160,13 @@ public class SyntaxParser {
 	 * or for another reason detailed in an error message
 	 */
 	@Nullable
-	public Condition parseCondition(String s) {
+	public AstNode parseCondition(String s) {
 		if (s.isEmpty())
 			return null;
 		
 		for (SyntaxElementInfo<?> info : registry.getConditions()) {
 			assert info != null;
-			Condition cond = (Condition) matchStatementInfo(s, info);
+			AstNode cond = matchStatementInfo(s, info);
 			if (cond != null) {
 				return cond;
 			}
@@ -362,14 +362,14 @@ public class SyntaxParser {
 	 * or for another reason detailed in an error message
 	 */
 	@Nullable
-	public Effect parseEffect(String s) {
+	public AstNode parseEffect(String s) {
 		if (s.isEmpty())
 			return null;
 
 		// Go through all effects (they have no return types, obviously)
 		for (SyntaxElementInfo<?> effect : registry.getEffects()) {
 			assert effect != null;
-			Effect eff = (Effect) matchStatementInfo(s, effect);
+			AstNode eff = matchStatementInfo(s, effect);
 			if (eff != null) {
 				return eff;
 			}
@@ -386,10 +386,10 @@ public class SyntaxParser {
 	 * or for another reason detailed in an error message
 	 */
 	@Nullable
-	public Statement parseStatement(String s) {
+	public AstNode parseStatement(String s) {
 		if (s.isEmpty())
 			return null;
-		Effect eff = parseEffect(s);
+		AstNode eff = parseEffect(s);
 		if (eff == null) { // Might be an inline condition, then
 			return parseCondition(s);
 		}
@@ -404,14 +404,14 @@ public class SyntaxParser {
 	 * detailed in an error message
 	 */
 	@Nullable
-	public SkriptEvent parseEvent(String s) {
+	public AstNode parseEvent(String s) {
 		if (s.isEmpty())
 			return null;
 		
 		// Test against all events
 		for (SkriptEventInfo<?> info : registry.getEvents()) {
 			assert info != null;
-			SkriptEvent event = (SkriptEvent) matchStatementInfo(s, info);
+			AstNode event = matchStatementInfo(s, info);
 			if (event != null) {
 				return event;
 			}
@@ -421,12 +421,16 @@ public class SyntaxParser {
 	}
 	
 	@Nullable
-	private SyntaxElement matchStatementInfo(String s, SyntaxElementInfo<?> info) {
+	private AstNode matchStatementInfo(String s, SyntaxElementInfo<?> info) {
 		PatternElement[] patterns = info.getCompiledPatterns();
 		for (int i = 0; i < patterns.length; i++) {
 			PatternElement element = patterns[i];
 			MatchContext parser = new MatchContext(this, element, currentContexts, i);
 			if (element.match(s, 0, parser) != -1) {
+				List<AstNode> inputs = parser.getInputs();
+				return new ExpressionNode(info.c, parser.toParseResult(), inputs.toArray(new AstNode[inputs.size()]));
+				
+				// TODO move to loader
 				try {
 					SyntaxElement syntax = info.c.newInstance();
 					if (!syntax.init(parser.getParsedExpressions().toArray(new Expression[0]), i,
