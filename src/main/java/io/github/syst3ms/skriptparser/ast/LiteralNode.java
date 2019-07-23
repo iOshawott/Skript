@@ -19,9 +19,15 @@ public class LiteralNode extends AstNode {
 	 */
 	private final String text;
 	
-	public LiteralNode(Class<?> type, String text) {
+	/**
+	 * Return types wanted.
+	 */
+	private final Class<?>[] returnTypes;
+	
+	public LiteralNode(Class<?> type, String text, Class<?>[] returnTypes) {
 		this.type = type;
 		this.text = text;
+		this.returnTypes = returnTypes;
 	}
 	
 	public Class<?> getType() {
@@ -30,5 +36,9 @@ public class LiteralNode extends AstNode {
 	
 	public String getText() {
 		return text;
+	}
+	
+	public Class<?>[] getReturnTypes() {
+		return returnTypes;
 	}
 }

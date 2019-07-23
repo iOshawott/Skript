@@ -4,6 +4,7 @@ import io.github.syst3ms.skriptparser.SkriptRegistry;
 import io.github.syst3ms.skriptparser.ast.AstNode;
 import io.github.syst3ms.skriptparser.ast.ExpressionNode;
 import io.github.syst3ms.skriptparser.ast.LiteralNode;
+import io.github.syst3ms.skriptparser.ast.VariableNode;
 import io.github.syst3ms.skriptparser.event.TriggerContext;
 import io.github.syst3ms.skriptparser.pattern.PatternElement;
 import io.github.syst3ms.skriptparser.types.PatternType;
@@ -119,14 +120,11 @@ public class SyntaxParser {
 		// Might be a variable here
 		Variable<? extends T> variable = Variable.newInstance(s, new Class[] {expectedType.getType().getC()});
 		if (variable != null) { // TODO check for variable syntax without making a variable
-			return new LiteralNode(Variable.class, s);
-			
-			// TODO move to loader
 			if (!variable.isSingle() && expectedType.isSingle()) {
 				Skript.error("A single value was expected, but " + s + " represents multiple values.");
 				return null;
 			}
-			return variable;
+			return new LiteralNode(Variable.class, s, new Class[] {expectedType.getType().getC()});
 		}
 		
 		// A list literal is could be here; try to parse it
@@ -331,24 +329,7 @@ public class SyntaxParser {
 			
 			Class<? extends T> expectedClass = expectedType.getType().getC();
 			if (expectedClass.isAssignableFrom(c) || Converters.converterExists(c, expectedClass)) {
-				return new LiteralNode(c, s);
-				
-				// TODO move to loader
-				Parser<?> literalParser = info.getParser();
-				if (literalParser != null) {
-					// TODO is this correct parse mode?
-					T literal = (T) literalParser.parse(s, ch.njol.skript.lang.ParseContext.DEFAULT);
-					if (literal != null && expectedClass.isAssignableFrom(c)) {
-						return new SimpleLiteral<>(literal, false);
-					} else if (literal != null) {
-						return new SimpleLiteral<>(literal, false).getConvertedExpression(expectedType.getType().getC());
-					}
-				} else if (expectedClass == String.class || c == String.class) {
-					VariableString vs = VariableString.newInstance(s);
-					if (vs != null) {
-						return (Expression<? extends T>) vs;
-					}
-				}
+				return new LiteralNode(c, s, new Class[] {expectedClass});
 			}
 		}
 		return null;
