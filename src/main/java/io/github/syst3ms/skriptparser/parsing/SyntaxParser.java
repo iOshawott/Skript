@@ -184,41 +184,9 @@ public class SyntaxParser {
 			MatchContext parser = new MatchContext(this, element, currentContexts, i);
 			if (element.match(s, 0, parser) != -1) {
 				List<AstNode> inputs = parser.getInputs();
-				return new ExpressionNode(info.c, parser.toParseResult(), inputs.toArray(new AstNode[inputs.size()]));
-				
-				// TODO move most of below to loader
-				try {
-					Expression<? extends T> expression = (Expression<? extends T>) info.c.newInstance();
-					if (!expression.init(parser.getParsedExpressions().toArray(new Expression[0]), i,
-							Kleenean.UNKNOWN, parser.toParseResult())) {
-						continue; // Didn't match this pattern, but try next one...
-					}
-					
-					// Wrap expression with a converter if needed
-					Class<?> expressionReturnType = expression.getReturnType();
-					if (!expectedTypeClass.isAssignableFrom(expressionReturnType)) {
-						Expression<?> converted = expression.getConvertedExpression(expectedTypeClass);
-						if (converted != null) { // It worked, we got converted type
-							return (Expression<? extends T>) converted;
-						} else {
-							ClassInfo<?> type = registry.getTypes().get(expressionReturnType);
-							assert type != null;
-							Skript.error(StringUtils.withIndefiniteArticle(expectedType.toString(), false) +
-									" was expected, but " +
-											StringUtils.withIndefiniteArticle(type.toString(), false) +
-									" was found");
-							return null;
-						}
-					}
-					if (!expression.isSingle() &&
-							expectedType.isSingle()) {
-						Skript.error("A single value was expected, but " + s + " represents multiple values.");
-						continue;
-					}
-					return expression;
-				} catch (InstantiationException | IllegalAccessException e) {
-					Skript.exception("Couldn't instantiate class " + info.c.getName());
-				}
+				return new ExpressionNode(info.c, expectedType.isSingle(),
+						(Class<? extends SyntaxElement>) expectedType.getType().getC(),
+						parser.toParseResult(), inputs.toArray(new AstNode[inputs.size()]));
 			}
 		}
 		return null;
@@ -324,15 +292,24 @@ public class SyntaxParser {
 	 */
 	@Nullable
 	public <T> LiteralNode parseLiteral(String s, PatternType<T> expectedType) {
+		Class<? extends T> expectedClass = expectedType.getType().getC();
 		for (ClassInfo<?> info : registry.getTypes()) {
 			Class<?> c = info.getC();
 			
-			Class<? extends T> expectedClass = expectedType.getType().getC();
 			if (expectedClass.isAssignableFrom(c) || Converters.converterExists(c, expectedClass)) {
-				return new LiteralNode(c, s, new Class[] {expectedClass});
+				// Type is or can be converted to requested type; now test parsing the literal
+				Parser<?> literalParser = info.getParser();
+				if (literalParser != null) { // Type might have literals
+					Object literal = literalParser.parse(s, ch.njol.skript.lang.ParseContext.DEFAULT);
+					if (literal != null) { // Found a match
+						// TODO plural literals?
+						return new LiteralNode(expectedClass, true, c, s, false);
+					}
+				}
 			}
 		}
-		return null;
+		
+		return null; // No suitable literals were found
 	}
 	
 	/**

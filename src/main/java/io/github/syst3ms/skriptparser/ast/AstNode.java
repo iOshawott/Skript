@@ -13,4 +13,26 @@ import io.github.syst3ms.skriptparser.parsing.SyntaxParser;
  */
 public abstract class AstNode {
 	
+	/**
+	 * Expected return type of this AST node.
+	 */
+	private final Class<?> returnType;
+	
+	/**
+	 * Whether one or multiple return values are wanted.
+	 */
+	private final boolean isSingle;
+
+	public AstNode(Class<?> returnType, boolean isSingle) {
+		this.returnType = returnType;
+		this.isSingle = isSingle;
+	}
+	
+	public Class<?> getReturnType() {
+		return returnType;
+	}
+
+	public boolean isSingle() {
+		return isSingle;
+	}
 }

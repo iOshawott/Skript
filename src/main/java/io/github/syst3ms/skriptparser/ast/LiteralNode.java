@@ -19,15 +19,14 @@ public class LiteralNode extends AstNode {
 	 */
 	private final String text;
 	
-	/**
-	 * Return types wanted.
-	 */
-	private final Class<?>[] returnTypes;
+	private final boolean isVariable;
 	
-	public LiteralNode(Class<?> type, String text, Class<?>[] returnTypes) {
+	public LiteralNode(Class<?> returnType, boolean isSingle,
+			Class<?> type, String text, boolean isVariable) {
+		super(returnType, isSingle);
 		this.type = type;
 		this.text = text;
-		this.returnTypes = returnTypes;
+		this.isVariable = isVariable;
 	}
 	
 	public Class<?> getType() {
@@ -38,7 +37,7 @@ public class LiteralNode extends AstNode {
 		return text;
 	}
 	
-	public Class<?>[] getReturnTypes() {
-		return returnTypes;
+	public boolean isVariable() {
+		return isVariable;
 	}
 }

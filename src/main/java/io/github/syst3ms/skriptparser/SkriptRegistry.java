@@ -65,6 +65,10 @@ public class SkriptRegistry {
 		public Iterator<T> iterator() {
 			return entries.iterator();
 		}
+		
+		public int size() {
+			return entries.size();
+		}
 	}
 	
 	private final Bundle<ClassInfo<?>> types;

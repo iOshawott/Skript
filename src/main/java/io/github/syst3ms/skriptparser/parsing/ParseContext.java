@@ -6,6 +6,8 @@ import io.github.syst3ms.skriptparser.pattern.PatternElement;
 import java.util.List;
 import java.util.regex.MatchResult;
 
+import ch.njol.skript.lang.SkriptParser.ParseResult;
+
 /**
  * Stores data about parsing operation of a syntax element.
  * Unlike {@link MatchContext}, this type is immutable.
@@ -76,6 +78,10 @@ public class ParseContext {
 	
 	public int getParseMark() {
 		return parseMark;
+	}
+
+	public ParseResult toLegacyResult() {
+		throw new UnsupportedOperationException("TODO");
 	}
     
 }
