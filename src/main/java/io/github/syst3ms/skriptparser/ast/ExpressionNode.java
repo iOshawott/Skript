@@ -24,9 +24,9 @@ public class ExpressionNode extends AstNode {
 	 */
 	private final AstNode[] inputs;
 	
-	public ExpressionNode(Class<?> returnType, boolean isSingle,
+	public ExpressionNode(String original, Class<?> returnType, boolean isSingle,
 			Class<? extends SyntaxElement> type, ParseContext context, AstNode[] inputs) {
-		super(returnType, isSingle);
+		super(original, returnType, isSingle);
 		this.type = type;
 		this.context = context;
 		this.inputs = inputs;

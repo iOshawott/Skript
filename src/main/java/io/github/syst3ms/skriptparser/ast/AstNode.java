@@ -14,6 +14,12 @@ import io.github.syst3ms.skriptparser.parsing.SyntaxParser;
 public abstract class AstNode {
 	
 	/**
+	 * Original representation of this node, exactly as it was written in
+	 * the script.
+	 */
+	private final String original;
+	
+	/**
 	 * Expected return type of this AST node.
 	 */
 	private final Class<?> returnType;
@@ -23,9 +29,14 @@ public abstract class AstNode {
 	 */
 	private final boolean isSingle;
 
-	public AstNode(Class<?> returnType, boolean isSingle) {
+	public AstNode(String original, Class<?> returnType, boolean isSingle) {
+		this.original = original;
 		this.returnType = returnType;
 		this.isSingle = isSingle;
+	}
+	
+	public String getOriginal() {
+		return original;
 	}
 	
 	public Class<?> getReturnType() {

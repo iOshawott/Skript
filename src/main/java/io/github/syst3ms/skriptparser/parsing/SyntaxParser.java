@@ -3,6 +3,7 @@ package io.github.syst3ms.skriptparser.parsing;
 import io.github.syst3ms.skriptparser.SkriptRegistry;
 import io.github.syst3ms.skriptparser.ast.AstNode;
 import io.github.syst3ms.skriptparser.ast.ExpressionNode;
+import io.github.syst3ms.skriptparser.ast.ListNode;
 import io.github.syst3ms.skriptparser.ast.LiteralNode;
 import io.github.syst3ms.skriptparser.ast.VariableNode;
 import io.github.syst3ms.skriptparser.event.TriggerContext;
@@ -124,7 +125,7 @@ public class SyntaxParser {
 				Skript.error("A single value was expected, but " + s + " represents multiple values.");
 				return null;
 			}
-			return new LiteralNode(Variable.class, s, new Class[] {expectedType.getType().getC()});
+			return new LiteralNode(expectedType.getType().getC(), variable.isSingle(), Object.class, s, true);
 		}
 		
 		// A list literal is could be here; try to parse it
@@ -184,7 +185,7 @@ public class SyntaxParser {
 			MatchContext parser = new MatchContext(this, element, currentContexts, i);
 			if (element.match(s, 0, parser) != -1) {
 				List<AstNode> inputs = parser.getInputs();
-				return new ExpressionNode(info.c, expectedType.isSingle(),
+				return new ExpressionNode(s, info.c, expectedType.isSingle(),
 						(Class<? extends SyntaxElement>) expectedType.getType().getC(),
 						parser.toParseResult(), inputs.toArray(new AstNode[inputs.size()]));
 			}
@@ -194,7 +195,6 @@ public class SyntaxParser {
 	
 	/**
 	 * Parses a list literal expression (of the form {@code ..., ... and ...}) from the given {@linkplain String}  and {@link PatternType expected return type}
-	 * @param <T> the type of the list literal
 	 * @param s the string to be parsed as a list literal
 	 * @param expectedType the expected return type (must be plural)
 	 * @return a list literal that was successfully parsed, or {@literal null} if the string is empty,
@@ -202,7 +202,7 @@ public class SyntaxParser {
 	 * or for another reason detailed in an error message.
 	 */
 	@Nullable
-	public <T> AstNode parseListLiteral(String s, PatternType<T> expectedType) {
+	public AstNode parseListLiteral(String s, PatternType<?> expectedType) {
 		assert !expectedType.isSingle();
 		if (!s.contains(",") && !s.contains("and") && !s.contains("nor") && !s.contains("or"))
 			return null;
@@ -258,27 +258,16 @@ public class SyntaxParser {
 				if (expression == null) {
 					return null;
 				}
-				isLiteralList &= expression instanceof Literal;
+				isLiteralList &= expression instanceof LiteralNode;
 				expressions.add(expression);
 			}
 		}
 		if (expressions.size() == 1)
 			return expressions.get(0);
 		
-		// TODO implement literal list AST node
-		if (isLiteralList) {
-			Literal<T>[] literals = expressions.toArray(new Literal[0]);
-			assert literals != null;
-			@SuppressWarnings("unchecked")
-			Class<T> returnType = (Class<T>) ClassUtils.getCommonSuperclass(Arrays.stream(literals).map(Literal::getReturnType).toArray(Class[]::new));
-			return new LiteralList<>(literals, returnType, isAndList);
-		} else {
-			Expression<T>[] exprs = expressions.toArray(new Expression[0]);
-			assert exprs != null;
-			@SuppressWarnings("unchecked")
-			Class<T> returnType = (Class<T>) ClassUtils.getCommonSuperclass(Arrays.stream(exprs).map(Expression::getReturnType).toArray(Class[]::new));
-			return new ExpressionList<>(exprs, returnType, isAndList);
-		}
+		@SuppressWarnings("unchecked")
+		Class<?> returnType = ClassUtils.getCommonSuperclass(expressions.stream().map(AstNode::getReturnType).toArray(Class[]::new));
+		return new ListNode(s, returnType, isLiteralList, isAndList, expressions.stream().toArray(AstNode[]::new));
 	}
 	
 	/**
@@ -301,7 +290,7 @@ public class SyntaxParser {
 				Parser<?> literalParser = info.getParser();
 				if (literalParser != null) { // Type might have literals
 					Object literal = literalParser.parse(s, ch.njol.skript.lang.ParseContext.DEFAULT);
-					if (literal != null) { // Found a match
+					if (literal != null) { // Parsing succeeded, discard the literal
 						// TODO plural literals?
 						return new LiteralNode(expectedClass, true, c, s, false);
 					}

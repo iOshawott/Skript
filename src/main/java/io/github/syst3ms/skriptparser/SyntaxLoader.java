@@ -1,5 +1,7 @@
 package io.github.syst3ms.skriptparser;
 
+import java.util.Arrays;
+
 import org.eclipse.jdt.annotation.Nullable;
 
 import ch.njol.skript.Skript;
@@ -7,15 +9,20 @@ import ch.njol.skript.classes.ClassInfo;
 import ch.njol.skript.classes.Parser;
 import ch.njol.skript.lang.Expression;
 import ch.njol.skript.lang.ExpressionInfo;
+import ch.njol.skript.lang.ExpressionList;
+import ch.njol.skript.lang.Literal;
+import ch.njol.skript.lang.LiteralList;
 import ch.njol.skript.lang.Variable;
 import ch.njol.skript.lang.VariableString;
 import ch.njol.skript.lang.util.SimpleLiteral;
 import ch.njol.util.Kleenean;
 import io.github.syst3ms.skriptparser.ast.AstNode;
 import io.github.syst3ms.skriptparser.ast.ExpressionNode;
+import io.github.syst3ms.skriptparser.ast.ListNode;
 import io.github.syst3ms.skriptparser.ast.LiteralNode;
 import io.github.syst3ms.skriptparser.parsing.MatchContext;
 import io.github.syst3ms.skriptparser.parsing.ParseContext;
+import io.github.syst3ms.skriptparser.util.ClassUtils;
 import io.github.syst3ms.skriptparser.util.StringUtils;
 
 /**
@@ -25,17 +32,34 @@ public class SyntaxLoader {
 	
 	private final SkriptRegistry registry;
 	
-	public Expression<?> loadExpression(AstNode node) {
+	public SyntaxLoader(SkriptRegistry registry) {
+		this.registry = registry;
+	}
+	
+	/**
+	 * Loads an AST node. This might produce errors or warnings if the nodes
+	 * contain errors that could not be detected parse-time. Additionally,
+	 * errors may be produced in rare cases where state of Skript has changed
+	 * significantly after successfully parsing to AST.
+	 * @param node AST node to load.
+	 * @return An expression, or null if something went wrong when loading it.
+	 * Errors have been printed to logger if null is returned.
+	 */
+	@Nullable
+	public Expression<?> loadNode(AstNode node) {
 		if (node instanceof LiteralNode) {
 			return loadLiteral((LiteralNode) node);
+		} else if (node instanceof ExpressionNode) {
+			return loadExpression((ExpressionNode) node);
 		} else {
-			return loadOnlyExpression((ExpressionNode) node);
+			assert node instanceof ListNode : "AST: unknown node type; can't load";
+			return loadList((ListNode) node);
 		}
 	}
 	
 	private Expression<?> loadLiteral(LiteralNode node) {
 		if (node.isVariable()) {
-			Variable<?> var = Variable.newInstance(node.getText(), node.getTypes());
+			Variable<?> var = Variable.newInstance(node.getText(), new Class[] {node.getType()});
 			assert var != null : "invalid AST";
 			return var;
 		} else {
@@ -59,11 +83,11 @@ public class SyntaxLoader {
 	}
 	
 	@Nullable
-	private Expression<?> loadOnlyExpression(ExpressionNode node) {
+	private Expression<?> loadExpression(ExpressionNode node) {
 		// Recursively load our inputs
 		Expression<?>[] inputs = new Expression[node.getInputs().length];
 		for (int i = 0; i < inputs.length; i++) {
-			inputs[i] = loadExpression(node.getInputs()[i]);
+			inputs[i] = loadNode(node.getInputs()[i]);
 		}
 		
 		Class<?> expectedType = node.getReturnType();
@@ -95,12 +119,31 @@ public class SyntaxLoader {
 			}
 			if (!expression.isSingle() && node.isSingle()) {
 				// TODO original string in AST nodes
-				Skript.error("A single value was expected, but " + s + " represents multiple values.");
-				continue;
+				Skript.error("A single value was expected, but " + node.getOriginal() + " represents multiple values.");
+				return null; // Note: unlike skript-parser does, treat this as fatal parse error
 			}
 			return expression;
 		} catch (InstantiationException | IllegalAccessException e) {
 			throw new Error(e);
+		}
+	}
+	
+	public ExpressionList<?> loadList(ListNode node) {
+		// TODO fix generic type safety
+		if (node.isLiteralList()) {
+			Literal<?>[] members = new Literal[node.getMembers().length];
+			for (int i = 0; i < members.length; i++) {
+				members[i] = (Literal<?>) loadNode(node.getMembers()[i]);
+			}
+			assert members != null;
+			return new LiteralList(members, node.getReturnType(), node.isAndList());
+		} else {
+			Expression<?>[] members = new Expression[node.getMembers().length];
+			for (int i = 0; i < members.length; i++) {
+				members[i] = loadNode(node.getMembers()[i]);
+			}
+			assert members != null;
+			return new ExpressionList(members, node.getReturnType(), node.isAndList());
 		}
 	}
 }
