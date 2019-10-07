@@ -23,8 +23,10 @@ import org.eclipse.jdt.annotation.Nullable;
 
 public class PatternParser {
 	
-    private static final Pattern PARSE_MARK_PATTERN = Pattern.compile("(\\d+?)\\xa6.*");
-    private static final Pattern VARIABLE_PATTERN = Pattern.compile("(-)?([*~])?(=)?(?<types>[\\w/]+)?");
+    @SuppressWarnings("null")
+	private static final Pattern PARSE_MARK_PATTERN = Pattern.compile("(\\d+?)\\xa6.*");
+    @SuppressWarnings("null")
+	private static final Pattern VARIABLE_PATTERN = Pattern.compile("(-)?([*~])?(=)?(?<types>[\\w/]+)?");
     
     private final SkriptRegistry registry;
     

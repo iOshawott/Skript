@@ -26,6 +26,7 @@ import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.eclipse.jdt.annotation.Nullable;
 
 import ch.njol.skript.SkriptAPIException;
+import io.github.syst3ms.skriptparser.PatternParser;
 
 public final class SkriptEventInfo<E extends SkriptEvent> extends SyntaxElementInfo<E> {
 	
@@ -47,13 +48,14 @@ public final class SkriptEventInfo<E extends SkriptEvent> extends SyntaxElementI
 	
 	/**
 	 * @param name Capitalised name of the event without leading "On" which is added automatically (Start the name with an asterisk to prevent this).
+	 * @param parser
 	 * @param patterns
 	 * @param c The SkriptEvent's class
 	 * @param originClassPath The class path for the origin of this event.
 	 * @param events The Bukkit-Events this SkriptEvent listens to
 	 */
-	public SkriptEventInfo(String name, final String[] patterns, final Class<E> c, final String originClassPath, final Class<? extends Event>[] events) {
-		super(patterns, c, originClassPath);
+	public SkriptEventInfo(String name, PatternParser parser, String[] patterns, Class<E> c, String originClassPath, Class<? extends Event>[] events) {
+		super(parser, patterns, c, originClassPath);
 		assert name != null;
 		assert patterns != null && patterns.length > 0;
 		assert c != null;
