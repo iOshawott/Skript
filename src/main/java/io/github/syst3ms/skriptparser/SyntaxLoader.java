@@ -77,7 +77,7 @@ public class SyntaxLoader {
 				Expression<?> converted = new SimpleLiteral<>(literal, false).getConvertedExpression(expectedClass);
 				assert converted != null : "AST: converter exists, but can't create converted expression";
 				return converted;
-			} // else: literal == null, will try next one
+			}
 		}
 		throw new AssertionError("AST: loading literal failed");
 	}

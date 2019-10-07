@@ -5,7 +5,6 @@ import io.github.syst3ms.skriptparser.ast.AstNode;
 import io.github.syst3ms.skriptparser.ast.ExpressionNode;
 import io.github.syst3ms.skriptparser.ast.ListNode;
 import io.github.syst3ms.skriptparser.ast.LiteralNode;
-import io.github.syst3ms.skriptparser.ast.VariableNode;
 import io.github.syst3ms.skriptparser.event.TriggerContext;
 import io.github.syst3ms.skriptparser.pattern.PatternElement;
 import io.github.syst3ms.skriptparser.types.PatternType;
@@ -47,19 +46,22 @@ import ch.njol.skript.registrations.Converters;
 import ch.njol.util.Kleenean;
 
 /**
- * Parses syntax elements from registry that it was created with.
+ * Parses {@link AstNode}s from user-provided text lines.
  */
 public class SyntaxParser {
+	
 	/**
 	 * Tells {@link #parseBooleanExpression(String, int, SkriptLogger)} to only return expressions that are not conditional
 	 * @see #parseBooleanExpression(String, int, SkriptLogger)
 	 */
 	public static final int NOT_CONDITIONAL = 0;
+	
 	/**
 	 * Tells {@link #parseBooleanExpression(String, int, SkriptLogger)} to return any expressions, conditional or not
 	 * @see #parseBooleanExpression(String, int, SkriptLogger)
 	 */
 	public static final int MAYBE_CONDITIONAL = 1;
+	
 	/**
 	 * Tells {@link #parseBooleanExpression(String, int, SkriptLogger)} to only return conditional expressions
 	 * @see #parseBooleanExpression(String, int, SkriptLogger)
@@ -94,13 +96,12 @@ public class SyntaxParser {
 	}
 	
 	/**
-	 * Parses an {@link Expression} from the given {@linkplain String} and {@link PatternType expected return type}
+	 * Parses a string to an AST node of an expression.
 	 * @param <T> the type of the expression
-	 * @param s the string to be parsed as an expression
-	 * @param expectedType the expected return type
-	 * @return an expression that was successfully parsed, or {@literal null} if the string is empty,
-	 * no match was found
-	 * or for another reason detailed in an error message.
+	 * @param s String to parse.
+	 * @param expectedType Requested return type for resulting expression.
+	 * @return An AST node representing an expression, or null if the given
+	 * string represents no expression.
 	 */
 	@Nullable
 	public <T> AstNode parseExpression(String s, PatternType<T> expectedType) {
@@ -136,7 +137,6 @@ public class SyntaxParser {
 			}
 		}
 		
-		
 		// Test all expressions that might return this type
 		Iterator<ExpressionInfo<?, ?>> it = registry.getExpressions(expectedType.getType().getC());
 		while (it.hasNext()) {
@@ -152,27 +152,16 @@ public class SyntaxParser {
 	}
 	
 	/**
-	 * Parses a line of code as an {@link Condition}
-	 * @param s the line to be parsed
-	 * @return an condition that was successfully parsed, or {@literal null} if the string is empty,
-	 * no match was found
-	 * or for another reason detailed in an error message
+	 * Attempts to match given string against given expression info.
+	 * If return type doesn't match what was expected, tries to use
+	 * a converter when possible.
+	 * @param <T>
+	 * @param s String to match.
+	 * @param info Expression info.
+	 * @param expectedType Expected return type from expression.
+	 * @return AST node or null.
 	 */
-	@Nullable
-	public AstNode parseCondition(String s) {
-		if (s.isEmpty())
-			return null;
-		
-		for (SyntaxElementInfo<?> info : registry.getConditions()) {
-			assert info != null;
-			AstNode cond = matchStatementInfo(s, info);
-			if (cond != null) {
-				return cond;
-			}
-		}
-		return null;
-	}
-	
+	@SuppressWarnings("unchecked")
 	@Nullable
 	private <T> AstNode matchExpressionInfo(String s, ExpressionInfo<?, ?> info, PatternType<T> expectedType) {
 		PatternElement[] patterns = info.getCompiledPatterns();
@@ -180,14 +169,40 @@ public class SyntaxParser {
 		Class<T> expectedTypeClass = expectedType.getType().getC();
 		if (!expectedTypeClass.isAssignableFrom(infoTypeClass) && !Converters.converterExists(infoTypeClass, expectedTypeClass))
 			return null; // Would need to convert, but we definitely can't do that
+		
 		for (int i = 0; i < patterns.length; i++) {
 			PatternElement element = patterns[i];
+			assert element != null;
 			MatchContext parser = new MatchContext(this, element, currentContexts, i);
 			if (element.match(s, 0, parser) != -1) {
 				List<AstNode> inputs = parser.getInputs();
+				AstNode[] inputArray = inputs.toArray(new AstNode[inputs.size()]);
+				assert inputArray != null;
 				return new ExpressionNode(s, info.c, expectedType.isSingle(),
 						(Class<? extends SyntaxElement>) expectedType.getType().getC(),
-						parser.toParseResult(), inputs.toArray(new AstNode[inputs.size()]));
+						parser.toParseResult(), inputArray);
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Parses a string to an AST node of a condition.
+	 * @param s String to parse.
+	 * @return An AST node representing a condition, or null if the given
+	 * string represents no condition.
+	 */
+	@Nullable
+	public AstNode parseCondition(String s) {
+		if (s.isEmpty())
+			return null;
+		
+		// Go through all conditions and attempt to match them
+		for (SyntaxElementInfo<?> info : registry.getConditions()) {
+			assert info != null;
+			AstNode cond = matchStatementInfo(s, info);
+			if (cond != null) {
+				return cond;
 			}
 		}
 		return null;
@@ -375,19 +390,9 @@ public class SyntaxParser {
 			MatchContext parser = new MatchContext(this, element, currentContexts, i);
 			if (element.match(s, 0, parser) != -1) {
 				List<AstNode> inputs = parser.getInputs();
-				return new ExpressionNode(info.c, parser.toParseResult(), inputs.toArray(new AstNode[inputs.size()]));
-				
-				// TODO move to loader
-				try {
-					SyntaxElement syntax = info.c.newInstance();
-					if (!syntax.init(parser.getParsedExpressions().toArray(new Expression[0]), i,
-							Kleenean.UNKNOWN, parser.toParseResult())) {
-						continue;
-					}
-					return syntax;
-				} catch (InstantiationException | IllegalAccessException e) {
-					Skript.exception(e, "Couldn't instantiate class " + info.c);
-				}
+				AstNode[] inputArray = inputs.toArray(new AstNode[inputs.size()]);
+				assert inputArray != null;
+				return new ExpressionNode(s, void.class, true, info.c, parser.toParseResult(), inputArray);
 			}
 		}
 		return null;

@@ -238,11 +238,12 @@ public class ExpressionElement implements PatternElement {
 					}
 					break;
 				case VARIABLES_ONLY:
-					if (!expression.getType().equals(Variable.class)) {
-						Skript.error("Only variables are allowed, found " + s);
-						return null;
-					}
-					break;
+					throw new UnsupportedOperationException("VARIABLES_ONLY");
+//					if (!expression.getType().equals(Variable.class)) {
+//						Skript.error("Only variables are allowed, found " + s);
+//						return null;
+//					}
+//					break;
 			}
 			return expression;
 		}
