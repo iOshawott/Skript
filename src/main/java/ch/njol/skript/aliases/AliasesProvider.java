@@ -20,44 +20,34 @@
 package ch.njol.skript.aliases;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.Map.Entry;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.gson.Gson;
 
-import ch.njol.skript.Skript;
 import ch.njol.skript.bukkitutil.BukkitUnsafe;
 import ch.njol.skript.bukkitutil.ItemUtils;
 import ch.njol.skript.bukkitutil.block.BlockCompat;
 import ch.njol.skript.bukkitutil.block.BlockValues;
-import ch.njol.skript.config.Config;
-import ch.njol.skript.config.EntryNode;
-import ch.njol.skript.config.Node;
-import ch.njol.skript.config.SectionNode;
 import ch.njol.skript.entity.EntityData;
-import ch.njol.skript.entity.EntityType;
-import ch.njol.skript.localization.ArgsMessage;
-import ch.njol.skript.localization.Message;
-import ch.njol.skript.localization.Noun;
-import ch.njol.util.NonNullPair;
 
 /**
  * Provides aliases on Bukkit/Spigot platform.
  */
 public class AliasesProvider {
+	
+	/**
+	 * When an alias is not found, it will requested from this provider.
+	 * Null when this is global aliases provider.
+	 */
+	@Nullable
+	private final AliasesProvider parent;
 	
 	/**
 	 * All aliases that are currently loaded by this provider.
@@ -172,12 +162,13 @@ public class AliasesProvider {
 	/**
 	 * Constructs a new aliases provider with no data.
 	 */
-	public AliasesProvider(int expectedCount) {
-		aliases = new HashMap<>(expectedCount);
-		variations = new HashMap<>(expectedCount / 20);
-		aliasesMap = new AliasesMap();
+	public AliasesProvider(int expectedCount, @Nullable AliasesProvider parent) {
+		this.parent = parent;
+		this.aliases = new HashMap<>(expectedCount);
+		this.variations = new HashMap<>(expectedCount / 20);
+		this.aliasesMap = new AliasesMap();
 		
-		gson = new Gson();
+		this.gson = new Gson();
 	}
 	
 	/**
@@ -258,7 +249,7 @@ public class AliasesProvider {
 	public void addAlias(AliasName name, String id, @Nullable Map<String, Object> tags, Map<String, String> blockStates) {
 		// First, try to find if aliases already has a type with this id
 		// (so that aliases can refer to each other)
-		ItemType typeOfId = aliases.get(id);
+		ItemType typeOfId = getAlias(id);
 		EntityData<?> related = null;
 		List<ItemData> datas;
 		if (typeOfId != null) { // If it exists, use datas from it
@@ -289,6 +280,15 @@ public class AliasesProvider {
 			ItemData data = new ItemData(stack, blockValues);
 			data.isAlias = true;
 			data.itemFlags = itemFlags;
+			
+			// Deduplicate item data if this has been loaded before
+			AliasesMap.Match canonical = aliasesMap.exactMatch(data);
+			if (canonical.getQuality().isAtLeast(MatchQuality.EXACT)) {
+				AliasesMap.AliasData aliasData = canonical.getData();
+				assert aliasData != null; // Match quality guarantees this
+				data = aliasData.getItem();
+			}
+			
 			datas = Collections.singletonList(data);
 		}
 		
@@ -326,12 +326,20 @@ public class AliasesProvider {
 
 	@Nullable
 	public ItemType getAlias(String alias) {
-		return aliases.get(alias);
+		ItemType item = aliases.get(alias);
+		if (item == null && parent != null) {
+			return parent.getAlias(alias);
+		}
+		return item;
 	}
 	
 	@Nullable
 	public AliasesMap.AliasData getAliasData(ItemData item) {
-		return aliasesMap.matchAlias(item).getData();
+		AliasesMap.AliasData data = aliasesMap.matchAlias(item).getData();
+		if (data == null && parent != null) {
+			return parent.getAliasData(item);
+		}
+		return data;
 	}
 
 	@Nullable

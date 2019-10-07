@@ -19,16 +19,20 @@
  */
 package ch.njol.skript.expressions;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.event.Event;
-import org.bukkit.event.entity.AreaEffectCloudApplyEvent;
+import org.bukkit.event.world.PortalCreateEvent;
 import org.eclipse.jdt.annotation.Nullable;
 
 import ch.njol.skript.ScriptLoader;
 import ch.njol.skript.Skript;
 import ch.njol.skript.doc.Description;
+import ch.njol.skript.doc.Events;
 import ch.njol.skript.doc.Examples;
 import ch.njol.skript.doc.Name;
 import ch.njol.skript.doc.Since;
@@ -38,42 +42,54 @@ import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.skript.lang.util.SimpleExpression;
 import ch.njol.util.Kleenean;
 
-@Name("Affected Entities")
-@Description("The affected entities in the <a href='events.html#aoe_cloud_effect'>area cloud effect</a> event.")
-@Examples({"on area cloud effect:",
-		"\tloop affected entities:",
-		"\t\tif loop-value is a player:",
-		"\t\t\tsend \"WARNING: you've step on an area effect cloud!\" to loop-value"})
+@Name("Portal")
+@Description("The blocks associated with a portal in the portal creation event.")
+@Examples({"on portal creation:",
+		"	loop portal blocks:",
+		"		broadcast \"%loop-block% is part of a portal!\""})
 @Since("2.4")
-public class ExprAffectedEntities extends SimpleExpression<LivingEntity> {
+@Events("portal_create")
+public class ExprPortal extends SimpleExpression<Block> {
 
+	// 1.14+ returns List<BlockState>, 1.13.2 and below returns ArrayList<Block> 
+	private static final boolean USING_BLOCKSTATE = Skript.isRunningMinecraft(1, 14);
+	
 	static {
-		Skript.registerExpression(ExprAffectedEntities.class, LivingEntity.class, ExpressionType.SIMPLE, "[the] affected entities");
+		Skript.registerExpression(ExprPortal.class, Block.class, ExpressionType.SIMPLE, 
+				"[the] portal['s] blocks",
+				"[the] blocks of [the] portal");
 	}
 
 	@Override
 	public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, ParseResult parser) {
-		if (!ScriptLoader.isCurrentEvent(AreaEffectCloudApplyEvent.class)) {
-			Skript.error("The 'affected entities' expression may only be used in an area cloud effect event.");
-			return false;
-		}
-		return true;
+		if (ScriptLoader.isCurrentEvent(PortalCreateEvent.class))
+			return true;
+		Skript.error("The 'portal' expression may only be used in a portal creation event.");
+		return false;
 	}
 
 	@Nullable
 	@Override
-	protected LivingEntity[] get(Event e) {
-		if (e instanceof AreaEffectCloudApplyEvent)
-			return ((AreaEffectCloudApplyEvent) e).getAffectedEntities().toArray(new LivingEntity[0]);
-		return null;
+	protected Block[] get(Event e) {
+		List<?> blocks = ((PortalCreateEvent) e).getBlocks();
+		if (USING_BLOCKSTATE)
+			return blocks.stream()
+					.map(block -> ((BlockState) block).getBlock())
+					.toArray(Block[]::new);
+		return blocks.stream()
+				.map(Block.class::cast)
+				.toArray(Block[]::new);
 	}
 
 	@Nullable
 	@Override
-	public Iterator<? extends LivingEntity> iterator(Event e) {
-		if (e instanceof AreaEffectCloudApplyEvent)
-			return ((AreaEffectCloudApplyEvent) e).getAffectedEntities().iterator();
-		return super.iterator(e);
+	public Iterator<Block> iterator(Event e) {
+		List<?> blocks = ((PortalCreateEvent) e).getBlocks();
+		if (USING_BLOCKSTATE) 
+			return blocks.stream()
+					.map(block -> ((BlockState) block).getBlock())
+					.iterator();
+		return (Iterator<Block>) blocks.iterator();
 	}
 
 	@Override
@@ -87,13 +103,13 @@ public class ExprAffectedEntities extends SimpleExpression<LivingEntity> {
 	}
 
 	@Override
-	public Class<? extends LivingEntity> getReturnType() {
-		return LivingEntity.class;
+	public Class<Block> getReturnType() {
+		return Block.class;
 	}
 
 	@Override
 	public String toString(@Nullable Event e, boolean debug) {
-		return "the affected entities";
+		return "the portal blocks";
 	}
 
 }
