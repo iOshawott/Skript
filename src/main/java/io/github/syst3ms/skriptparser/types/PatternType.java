@@ -11,37 +11,37 @@ import ch.njol.skript.localization.Noun;
  */
 public class PatternType<T> {
 	
-    private ClassInfo<T> type;
-    private boolean single;
-
-    public PatternType(ClassInfo<T> type, boolean single) {
-        this.type = type;
-        this.single = single;
-    }
-
-    public ClassInfo<T> getType() {
-        return type;
-    }
-
-    public boolean isSingle() {
-        return single;
-    }
-
-    @Override
-    public boolean equals(@Nullable Object obj) {
-        if (this == obj)
-            return true;
-        if (!(obj instanceof PatternType)) {
-            return false;
-        } else {
-            PatternType<?> o = (PatternType<?>) obj;
-            return type.equals(o.type) && single == o.single;
-        }
-    }
-
-    @Override
-    public String toString() {
-    	Noun forms = type.getName();
-    	return single ? forms.getSingular() : forms.getPlural();
-    }
+	private ClassInfo<T> type;
+	private boolean single;
+	
+	public PatternType(ClassInfo<T> type, boolean single) {
+		this.type = type;
+		this.single = single;
+	}
+	
+	public ClassInfo<T> getType() {
+		return type;
+	}
+	
+	public boolean isSingle() {
+		return single;
+	}
+	
+	@Override
+	public boolean equals(@Nullable Object obj) {
+		if (this == obj)
+			return true;
+		if (!(obj instanceof PatternType)) {
+			return false;
+		} else {
+			PatternType<?> o = (PatternType<?>) obj;
+			return type.equals(o.type) && single == o.single;
+		}
+	}
+	
+	@Override
+	public String toString() {
+		Noun forms = type.getName();
+		return single ? forms.getSingular() : forms.getPlural();
+	}
 }

@@ -8,7 +8,7 @@ import io.github.syst3ms.skriptparser.parsing.ParseContext;
  * For example, references to aliases are literals.
  */
 public class LiteralNode extends AstNode {
-
+	
 	/**
 	 * Type of this literal.
 	 */

@@ -15,7 +15,7 @@ public class ListNode extends AstNode {
 	 * If this list is AND, not OR list.
 	 */
 	private final boolean isAndList;
-
+	
 	/**
 	 * Members of the list.
 	 */
@@ -35,7 +35,7 @@ public class ListNode extends AstNode {
 	public boolean isAndList() {
 		return isAndList;
 	}
-
+	
 	public AstNode[] getMembers() {
 		return members;
 	}

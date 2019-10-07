@@ -312,7 +312,7 @@ public class SyntaxParser {
 	public AstNode parseEffect(String s) {
 		if (s.isEmpty())
 			return null;
-
+		
 		// Go through all effects (they have no return types, obviously)
 		for (SyntaxElementInfo<?> effect : registry.getEffects()) {
 			assert effect != null;

@@ -28,7 +28,7 @@ public abstract class AstNode {
 	 * Whether one or multiple return values are wanted.
 	 */
 	private final boolean isSingle;
-
+	
 	public AstNode(String original, Class<?> returnType, boolean isSingle) {
 		this.original = original;
 		this.returnType = returnType;
@@ -42,7 +42,7 @@ public abstract class AstNode {
 	public Class<?> getReturnType() {
 		return returnType;
 	}
-
+	
 	public boolean isSingle() {
 		return isSingle;
 	}
