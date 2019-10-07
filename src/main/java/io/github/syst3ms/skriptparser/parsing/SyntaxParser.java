@@ -73,26 +73,11 @@ public class SyntaxParser {
 	
 	private final SkriptRegistry registry;
 	
-	/**
-	 * The pattern type representing {@link Boolean}
-	 */
-	@SuppressWarnings("null")
-	public final PatternType<Boolean> booleanPatternType;
-	
-	/**
-	 * The pattern type representing {@link Object}
-	 */
-	@SuppressWarnings("null")
-	public final PatternType<Object> objectPatternType;
-	
 	@SuppressWarnings("unchecked")
 	private Class<? extends TriggerContext>[] currentContexts = new Class[]{};
 	
-	@SuppressWarnings("unchecked")
 	public SyntaxParser(SkriptRegistry registry) {
 		this.registry = registry;
-		this.booleanPatternType = new PatternType<>((ClassInfo<Boolean>) registry.getTypes().get(Boolean.class), true);
-		this.objectPatternType = new PatternType<>((ClassInfo<Object>) registry.getTypes().get(Object.class), true);
 	}
 	
 	/**
@@ -341,11 +326,12 @@ public class SyntaxParser {
 	}
 	
 	/**
-	 * Parses a line of code as a {@link Statement}, either an {@link Effect} or an {@link InlineCondition}
-	 * @param s the line to be parsed
-	 * @return a statement that was successfully parsed, or {@literal null} if the string is empty,
-	 * no match was found
-	 * or for another reason detailed in an error message
+	 * Parses string to AST node representing either an effect or
+	 * an inline condition. In case of a conflict, an effect will
+	 * be parsed.
+	 * @param s String to be parsed.
+	 * @return An AST node representing an effect or a condition,
+	 * or null if the given string represents neither.
 	 */
 	@Nullable
 	public AstNode parseStatement(String s) {
@@ -356,6 +342,30 @@ public class SyntaxParser {
 			return parseCondition(s);
 		}
 		return eff;
+	}
+	
+	/**
+	 * Parses a string to an AST node of a scope.
+	 * @param <T> the type of the expression
+	 * @param s String to parse.
+	 * @return An AST node representing a scope, or null if the given
+	 * string represents no scope.
+	 */
+	@Nullable
+	public AstNode parseScope(String s) {
+		if (s.isEmpty())
+			return null;
+		
+		// Go through all effects (they have no return types, obviously)
+		for (SyntaxElementInfo<?> scope : registry.getScopes()) {
+			assert scope != null;
+			AstNode node = matchStatementInfo(s, scope);
+			if (node != null) {
+				return node;
+			}
+		}
+		Skript.error("No scope matching '" + s + "' was found");
+		return null;
 	}
 	
 	/**
@@ -387,6 +397,7 @@ public class SyntaxParser {
 		PatternElement[] patterns = info.getCompiledPatterns();
 		for (int i = 0; i < patterns.length; i++) {
 			PatternElement element = patterns[i];
+			assert element != null;
 			MatchContext parser = new MatchContext(this, element, currentContexts, i);
 			if (element.match(s, 0, parser) != -1) {
 				List<AstNode> inputs = parser.getInputs();

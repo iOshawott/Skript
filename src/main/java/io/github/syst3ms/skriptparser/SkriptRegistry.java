@@ -18,7 +18,16 @@ import ch.njol.util.coll.iterator.CheckedIterator;
 import io.github.syst3ms.skriptparser.types.PatternType;
 
 /**
- * Contains registered types, conditions, expressions, effects and events.
+ * Contains registered types, expressions, conditions, effects, scopes
+ * and events.
+ * 
+ * <ul>
+ * <li>Types are same as in Java
+ * <li>Expressions are close to Java's getter/setter pairs
+ * <li>Conditions are boolean expressions that can be used in place of effects
+ * <li>Effects are basically methods that return nothing
+ * <li>Scopes are used to implement control flow and other blocks
+ * </ul>
  */
 public class SkriptRegistry {
 	
@@ -61,6 +70,7 @@ public class SkriptRegistry {
 			return entry;
 		}
 
+		@SuppressWarnings("null")
 		@Override
 		public Iterator<T> iterator() {
 			return entries.iterator();
@@ -75,6 +85,7 @@ public class SkriptRegistry {
 	private final Bundle<ExpressionInfo<?, ?>> expressions;
 	private final Bundle<SyntaxElementInfo<?>> conditions;
 	private final Bundle<SyntaxElementInfo<?>> effects;
+	private final Bundle<SyntaxElementInfo<?>> scopes;
 	private final Bundle<SkriptEventInfo<?>> events;
 	
 	public SkriptRegistry() {
@@ -82,6 +93,7 @@ public class SkriptRegistry {
 		this.expressions = new Bundle<>();
 		this.conditions = new Bundle<>();
 		this.effects = new Bundle<>();
+		this.scopes = new Bundle<>();
 		this.events = new Bundle<>();
 	}
 	
@@ -135,6 +147,10 @@ public class SkriptRegistry {
 	
 	public Bundle<SyntaxElementInfo<?>> getEffects() {
 		return effects;
+	}
+	
+	public Bundle<SyntaxElementInfo<?>> getScopes() {
+		return scopes;
 	}
 	
 	public Bundle<SkriptEventInfo<?>> getEvents() {
