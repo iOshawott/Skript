@@ -5,10 +5,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import ch.njol.skript.config.Config;
 import ch.njol.skript.config.EntryNode;
 import ch.njol.skript.config.Node;
 import ch.njol.skript.config.SectionNode;
+import ch.njol.skript.lang.ScopeInfo;
 import ch.njol.skript.lang.SkriptEvent;
 import ch.njol.skript.lang.SkriptEventInfo;
 import ch.njol.skript.lang.function.Namespace;
@@ -32,8 +35,8 @@ public class ScriptParser {
 	public static class SymbolTable {
 		
 		private static class Trigger {
-			private final AstNode event;
-			private final SectionNode code;
+			final AstNode event;
+			final SectionNode code;
 			
 			public Trigger(AstNode event, SectionNode code) {
 				this.event = event;
@@ -112,11 +115,52 @@ public class ScriptParser {
 		return symbols;
 	}
 	
-	public ParsedScript parseCode(SymbolTable symbols) {
-		List<ParsedScript.Trigger> triggers = new ArrayList<>();
+	public ParsedScript parseCode(SymbolTable symbols) {		
+		// Parse trigger contents
+		List<ParsedScript.Trigger> triggers = new ArrayList<>(symbols.triggers.size());
 		for (SymbolTable.Trigger t : symbols.triggers) {
-			
+			ParsedScript.Statement[] statements = parseScope(t.code, syntaxParser);
+			if (statements == null) {
+				continue; // Error while parsing trigger
+			}
+			triggers.add(new ParsedScript.Trigger(t.event, statements));
 		}
-		// TODO
+		return new ParsedScript(triggers);
+	}
+	
+	@Nullable
+	private ParsedScript.Statement[] parseScope(SectionNode root, SyntaxParser parser) {
+		ParsedScript.Statement[] statements = new ParsedScript.Statement[root.size()];
+		int i = 0;
+		for (Node line : root) {
+			String code = line.getKey();
+			if (code == null) {
+				continue;
+			}
+			
+			if (line instanceof SectionNode) { // Looks like scope
+				AstNode node = syntaxParser.parseScope(code);
+				if (node == null) {
+					return null; // Statement has errors
+				}
+				
+				ScopeInfo<?> source = (ScopeInfo<?>) node.getSource();
+				assert source != null : "AST: scope source unavailable";
+				SyntaxParser contentParser = source.parserOverride != null ? source.parserOverride : parser;
+				assert contentParser != null;
+				ParsedScript.Statement[] contents = parseScope((SectionNode) line, contentParser);
+				if (contents == null) {
+					return null; // Inner scope has errors
+				}
+				statements[i++] = new ParsedScript.ScopeStatement(node, contents);
+			} else { // Just normal statement
+				AstNode node = syntaxParser.parseStatement(code);
+				if (node == null) {
+					return null; // Statement has errors
+				}
+				statements[i++] = new ParsedScript.SimpleStatement(node);
+			}
+		}
+		return statements;
 	}
 }

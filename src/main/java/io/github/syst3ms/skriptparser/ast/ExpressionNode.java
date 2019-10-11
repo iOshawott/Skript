@@ -1,6 +1,7 @@
 package io.github.syst3ms.skriptparser.ast;
 
 import ch.njol.skript.lang.SyntaxElement;
+import ch.njol.skript.lang.SyntaxElementInfo;
 import io.github.syst3ms.skriptparser.parsing.ParseContext;
 
 /**
@@ -24,9 +25,9 @@ public class ExpressionNode extends AstNode {
 	 */
 	private final AstNode[] inputs;
 	
-	public ExpressionNode(String original, Class<?> returnType, boolean isSingle,
-			Class<? extends SyntaxElement> type, ParseContext context, AstNode[] inputs) {
-		super(original, returnType, isSingle);
+	public ExpressionNode(String original, SyntaxElementInfo<?> source, Class<?> returnType,
+			boolean isSingle, Class<? extends SyntaxElement> type, ParseContext context, AstNode[] inputs) {
+		super(original, source, returnType, isSingle);
 		this.type = type;
 		this.context = context;
 		this.inputs = inputs;

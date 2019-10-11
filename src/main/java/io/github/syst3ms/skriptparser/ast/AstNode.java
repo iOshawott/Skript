@@ -1,6 +1,9 @@
 package io.github.syst3ms.skriptparser.ast;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import ch.njol.skript.lang.SyntaxElement;
+import ch.njol.skript.lang.SyntaxElementInfo;
 import io.github.syst3ms.skriptparser.parsing.ParseContext;
 import io.github.syst3ms.skriptparser.parsing.SyntaxParser;
 
@@ -20,6 +23,13 @@ public abstract class AstNode {
 	private final String original;
 	
 	/**
+	 * What kind of syntax element this node represents.
+	 * Not always available.
+	 */
+	@Nullable
+	private final SyntaxElementInfo<?> source;
+	
+	/**
 	 * Expected return type of this AST node.
 	 */
 	private final Class<?> returnType;
@@ -29,14 +39,20 @@ public abstract class AstNode {
 	 */
 	private final boolean isSingle;
 	
-	public AstNode(String original, Class<?> returnType, boolean isSingle) {
+	public AstNode(String original, @Nullable SyntaxElementInfo<?> source, Class<?> returnType, boolean isSingle) {
 		this.original = original;
+		this.source = source;
 		this.returnType = returnType;
 		this.isSingle = isSingle;
 	}
 	
 	public String getOriginal() {
 		return original;
+	}
+	
+	@Nullable
+	public SyntaxElementInfo<?> getSource() {
+		return source;
 	}
 	
 	public Class<?> getReturnType() {

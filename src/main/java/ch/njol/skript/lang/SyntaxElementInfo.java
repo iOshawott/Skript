@@ -51,7 +51,7 @@ public class SyntaxElementInfo<E extends SyntaxElement> {
 	 */
 	private final PatternElement[] compiledPatterns;
 	
-	public SyntaxElementInfo(PatternParser parser, String[] patterns, Class<E> c, String originClassPath) throws IllegalArgumentException {
+	public SyntaxElementInfo(PatternParser parser, String[] patterns, Class<E> c, String originClassPath) {
 		this.patterns = patterns;
 		this.c = c;
 		this.originClassPath = originClassPath;

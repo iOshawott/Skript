@@ -10,6 +10,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import ch.njol.skript.classes.ClassInfo;
 import ch.njol.skript.lang.ExpressionInfo;
+import ch.njol.skript.lang.ScopeInfo;
 import ch.njol.skript.lang.SkriptEventInfo;
 import ch.njol.skript.lang.SyntaxElementInfo;
 import ch.njol.skript.registrations.Converters;
@@ -85,7 +86,7 @@ public class SkriptRegistry {
 	private final Bundle<ExpressionInfo<?, ?>> expressions;
 	private final Bundle<SyntaxElementInfo<?>> conditions;
 	private final Bundle<SyntaxElementInfo<?>> effects;
-	private final Bundle<SyntaxElementInfo<?>> scopes;
+	private final Bundle<ScopeInfo<?>> scopes;
 	private final Bundle<SkriptEventInfo<?>> events;
 	
 	public SkriptRegistry() {
@@ -149,7 +150,7 @@ public class SkriptRegistry {
 		return effects;
 	}
 	
-	public Bundle<SyntaxElementInfo<?>> getScopes() {
+	public Bundle<ScopeInfo<?>> getScopes() {
 		return scopes;
 	}
 	

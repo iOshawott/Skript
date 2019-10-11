@@ -163,7 +163,7 @@ public class SyntaxParser {
 				List<AstNode> inputs = parser.getInputs();
 				AstNode[] inputArray = inputs.toArray(new AstNode[inputs.size()]);
 				assert inputArray != null;
-				return new ExpressionNode(s, info.c, expectedType.isSingle(),
+				return new ExpressionNode(s, info, info.c, expectedType.isSingle(),
 						(Class<? extends SyntaxElement>) expectedType.getType().getC(),
 						parser.toParseResult(), inputArray);
 			}
@@ -403,7 +403,7 @@ public class SyntaxParser {
 				List<AstNode> inputs = parser.getInputs();
 				AstNode[] inputArray = inputs.toArray(new AstNode[inputs.size()]);
 				assert inputArray != null;
-				return new ExpressionNode(s, void.class, true, info.c, parser.toParseResult(), inputArray);
+				return new ExpressionNode(s, info, void.class, true, info.c, parser.toParseResult(), inputArray);
 			}
 		}
 		return null;

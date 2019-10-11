@@ -18,7 +18,7 @@ public class LiteralNode extends AstNode {
 	
 	public LiteralNode(Class<?> returnType, boolean isSingle,
 			Class<?> type, String text, boolean isVariable) {
-		super(text, returnType, isSingle);
+		super(text, null, returnType, isSingle);
 		this.type = type;
 		this.isVariable = isVariable;
 	}

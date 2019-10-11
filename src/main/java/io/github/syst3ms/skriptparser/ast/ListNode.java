@@ -22,7 +22,7 @@ public class ListNode extends AstNode {
 	private final AstNode[] members;
 	
 	public ListNode(String original, Class<?> returnType, boolean isLiteralList, boolean isAndList, AstNode[] members) {
-		super(original, returnType, false);
+		super(original, null, returnType, false);
 		this.isLiteralList = isLiteralList;
 		this.isAndList = isAndList;
 		this.members = members;
