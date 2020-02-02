@@ -43,7 +43,7 @@ import ch.njol.skript.lang.SkriptParser.ParseResult;
 import ch.njol.util.Checker;
 import ch.njol.util.coll.CollectionUtils;
 
-@SuppressWarnings("deprecation")
+@SuppressWarnings({"deprecation", "unchecked"})
 public class EvtItem extends SkriptEvent {
 	
 	private final static boolean hasConsumeEvent = Skript.classExists("org.bukkit.event.player.PlayerItemConsumeEvent");
